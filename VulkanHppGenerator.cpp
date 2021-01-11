@@ -36,6 +36,9 @@
 #  define OUTPUT_FILENAME "vulkan.hpp"
 # endif
 #endif
+#ifndef INCLUDED_FILENAME
+# define INCLUDED_FILENAME "vulkan/vulkan.h"
+#endif
 
 #ifndef COMMAND_PREFIX
 # define COMMAND_PREFIX "vk"
@@ -59,6 +62,16 @@
 #endif
 #ifndef HEADER_MACRO
 # define HEADER_MACRO "VULKAN_HPP"
+#endif
+
+#ifndef NO_DISPATCH
+# define NEEDS_DISPATCH true
+#endif
+#ifndef NO_VERSION_CHECK
+# define NEEDS_VERSION_CHECK true
+#endif
+#ifndef NO_STRUCTURE_CHAIN
+# define NEEDS_STRUCTURE_CHAIN
 #endif
 
 void             appendArgumentCount( std::string &       str,
@@ -1316,7 +1329,8 @@ void VulkanHppGenerator::appendCommand( std::string &       str,
     return;
   }
 
-  throw std::runtime_error( "Never encountered a function like " + name + " !" );
+  //throw std::runtime_error( "Never encountered a function like " + name + " !" );
+  std::cout << "Never encountered a function like " + name + " !\n";
 }
 
 void VulkanHppGenerator::appendCommandChained( std::string &                    str,
@@ -3186,7 +3200,7 @@ std::string VulkanHppGenerator::constructArgumentListEnhanced( std::vector<Param
         std::string name = startLowerCase( stripPrefix( params[i].name, "p" ) );
         if ( params[i].len.empty() )
         {
-          assert( !params[i].type.prefix.empty() && ( params[i].type.postfix == "*" ) );
+          assert( !params[i].type.prefix.empty() && ( params[i].type.postfix == "*" || params[i].type.postfix == "**") );
           assert( params[i].arraySizes.empty() );
           if ( params[i].type.type == "void" )
           {
@@ -3267,7 +3281,9 @@ std::string VulkanHppGenerator::constructArgumentListEnhanced( std::vector<Param
   {
     if ( structureChain )
     {
+#ifdef NEEDS_STRUCTURE_CHAIN
       argumentList += "StructureChainAllocator & structureChainAllocator, ";
+#endif
     }
     else
     {
@@ -3283,8 +3299,12 @@ std::string VulkanHppGenerator::constructArgumentListEnhanced( std::vector<Param
       }
     }
   }
+#ifdef NEEDS_DISPATCH
   argumentList +=
     std::string( "Dispatch const & d" ) + ( definition ? "" : " " HEADER_MACRO "_DEFAULT_DISPATCHER_ASSIGNMENT" );
+#else
+  argumentList = argumentList.substr(0, argumentList.size() - 2);
+#endif
   return argumentList;
 }
 
@@ -3300,7 +3320,11 @@ std::string VulkanHppGenerator::constructArgumentListStandard( std::vector<Param
         params[i].type.compose() + " " + params[i].name + constructCArraySizes( params[i].arraySizes ) + ", ";
     }
   }
+#ifdef NEEDS_DISPATCH
   argumentList += "Dispatch const & d ";
+#else
+  argumentList = argumentList.substr(0, argumentList.size() - 2);
+#endif
   return argumentList;
 }
 
@@ -3565,8 +3589,10 @@ std::string VulkanHppGenerator::constructCommandResult( std::string const &     
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename Dispatch>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch>)" "\n"
+#endif
+      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
     return createResultValue( result, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
@@ -3587,8 +3613,10 @@ std::string VulkanHppGenerator::constructCommandResult( std::string const &     
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
+#ifdef NEEDS_DISPATCH
+      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)" "\n"
+#endif
+      R"(    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -3626,8 +3654,11 @@ std::string VulkanHppGenerator::constructCommandResultEnumerate( std::string con
   if ( definition )
   {
     const std::string functionTemplate =
-      R"(  template <typename ${allocatorType}, typename Dispatch${typenameCheck}>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<std::vector<${vectorElementType}, ${allocatorType}>>::type ${className}${classSeparator}${commandName}( ${argumentList} )${const}
+      R"(  template <typename ${allocatorType})"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch)"
+#endif
+      "${typenameCheck}>\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<std::vector<${vectorElementType}, ${allocatorType}>>::type ${className}${classSeparator}${commandName}( ${argumentList} )${const}
   {
     std::vector<${vectorElementType}, ${allocatorType}> ${vectorName}${vectorAllocator};
     ${counterType} ${counterName};
@@ -3678,8 +3709,11 @@ std::string VulkanHppGenerator::constructCommandResultEnumerate( std::string con
   else
   {
     const std::string functionTemplate =
-      R"(    template <typename ${allocatorType} = std::allocator<${vectorElementType}>, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE${typenameCheck}>
-    ${nodiscard}typename ResultValueType<std::vector<${vectorElementType}, ${allocatorType}>>::type ${commandName}( ${argumentList} )${const};)";
+      R"(    template <typename ${allocatorType} = std::allocator<${vectorElementType}>)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+#endif
+      "${typenameCheck}>\n" R"(    ${nodiscard}typename ResultValueType<std::vector<${vectorElementType}, ${allocatorType}>>::type ${commandName}( ${argumentList} )${const};)";
 
     std::string typenameCheck = withAllocator ? ( ", typename B = " + allocatorType +
                                                   ", typename std::enable_if<std::is_same<typename B::value_type, " +
@@ -3724,8 +3758,11 @@ std::string
   if ( definition )
   {
     const std::string functionTemplate =
-      R"(  template <typename StructureChain, typename StructureChainAllocator, typename Dispatch${typenameCheck}>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<std::vector<StructureChain, StructureChainAllocator>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      R"(  template <typename StructureChain, typename StructureChainAllocator)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch)"
+#endif
+      "${typenameCheck}>\n" R"(  {nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<std::vector<StructureChain, StructureChainAllocator>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     std::vector<StructureChain, StructureChainAllocator> returnVector${structureChainAllocator};
     std::vector<${vectorElementType}> ${vectorName};
@@ -3787,8 +3824,11 @@ std::string
   else
   {
     const std::string functionTemplate =
-      R"(    template <typename StructureChain, typename StructureChainAllocator = std::allocator<StructureChain>, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE${typenameCheck}>
-    ${nodiscard}typename ResultValueType<std::vector<StructureChain, StructureChainAllocator>>::type ${commandName}( ${argumentList} ) const;)";
+      R"(  template <typename StructureChain, typename StructureChainAllocator = std::allocator<StructureChain>)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+#endif
+      "${typenameCheck}>\n" R"(  ${nodiscard}typename ResultValueType<std::vector<StructureChain, StructureChainAllocator>>::type ${commandName}( ${argumentList} ) const;)";
 
     std::string typenameCheck =
       withAllocator
@@ -3834,8 +3874,11 @@ std::string
   if ( definition )
   {
     const std::string functionTemplate =
-      R"(  template <typename ${templateTypeFirst}Allocator, typename ${templateTypeSecond}Allocator, typename Dispatch${typenameCheck}>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<std::pair<std::vector<${templateTypeFirst}, ${templateTypeFirst}Allocator>, std::vector<${templateTypeSecond}, ${templateTypeSecond}Allocator>>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      R"(  template <typename ${templateTypeFirst}Allocator, typename ${templateTypeSecond}Allocator)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch)"
+#endif
+      "${typenameCheck}>\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<std::pair<std::vector<${templateTypeFirst}, ${templateTypeFirst}Allocator>, std::vector<${templateTypeSecond}, ${templateTypeSecond}Allocator>>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     std::pair<std::vector<${templateTypeFirst}, ${templateTypeFirst}Allocator>, std::vector<${templateTypeSecond}, ${templateTypeSecond}Allocator>> data${pairConstructor};
     std::vector<${templateTypeFirst}, ${templateTypeFirst}Allocator> & ${firstVectorName} = data.first;
@@ -3901,8 +3944,11 @@ std::string
   else
   {
     const std::string functionTemplate =
-      R"(    template <typename ${templateTypeFirst}Allocator = std::allocator<${templateTypeFirst}>, typename ${templateTypeSecond}Allocator = std::allocator<${templateTypeSecond}>, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE${typenameCheck}>
-    ${nodiscard}typename ResultValueType<std::pair<std::vector<${templateTypeFirst}, ${templateTypeFirst}Allocator>, std::vector<${templateTypeSecond}, ${templateTypeSecond}Allocator>>>::type ${commandName}( ${argumentList} ) const;)";
+      R"(  template <typename ${templateTypeFirst}Allocator = std::allocator<${templateTypeFirst}>, typename ${templateTypeSecond}Allocator = std::allocator<${templateTypeSecond}>)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+#endif
+      "${typenameCheck}>\n" R"(  ${nodiscard}typename ResultValueType<std::pair<std::vector<${templateTypeFirst}, ${templateTypeFirst}Allocator>, std::vector<${templateTypeSecond}, ${templateTypeSecond}Allocator>>>::type ${commandName}( ${argumentList} ) const;)";
 
     std::string typenameCheck =
       withAllocators
@@ -3940,8 +3986,11 @@ std::string VulkanHppGenerator::constructCommandResultEnumerateTwoVectorsDepreca
   if ( definition )
   {
     const std::string functionTemplate =
-      R"(  template <typename Allocator, typename Dispatch${typeCheck}>
-  )" HEADER_MACRO R"(_DEPRECATED( "This function is deprecated. Use one of the other flavours of it.")
+      R"(  template <typename Allocator)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch)"
+#endif
+      "${typeCheck}>\n  " HEADER_MACRO R"(_DEPRECATED( "This function is deprecated. Use one of the other flavours of it.")
   ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<${returnType}>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     ${functionBody}
@@ -3974,8 +4023,11 @@ std::string VulkanHppGenerator::constructCommandResultEnumerateTwoVectorsDepreca
   else
   {
     const std::string functionTemplate =
-      R"(    template <typename Allocator = std::allocator<${templateType}>, typename Dispatch  = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE${typeCheck}>
-    ${nodiscard}typename ResultValueType<${returnType}>::type ${commandName}( ${argumentList} ) const;)";
+      R"(  template <typename Allocator = std::allocator<${templateType}>)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch  = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE${typeCheck})"
+#endif
+      ">\n" R"(  ${nodiscard}typename ResultValueType<${returnType}>::type ${commandName}( ${argumentList} ) const;)";
 
     std::string typeCheck =
       withAllocators ? ", typename B = Allocator, typename std::enable_if<std::is_same<typename B::value_type, " +
@@ -4013,8 +4065,11 @@ std::string VulkanHppGenerator::constructCommandResultGetChain( std::string cons
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename X, typename Y, typename... Z, typename Dispatch>
-  )" HEADER_MACRO R"(_NODISCARD_WHEN_NO_EXCEPTIONS )" HEADER_MACRO R"(_INLINE typename ResultValueType<StructureChain<X, Y, Z...>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      R"(  template <typename X, typename Y, typename... Z)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch)"
+#endif
+      ">\n  " HEADER_MACRO R"(_NODISCARD_WHEN_NO_EXCEPTIONS )" HEADER_MACRO R"(_INLINE typename ResultValueType<StructureChain<X, Y, Z...>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     StructureChain<X, Y, Z...> structureChain;
     ${returnType} & ${returnVariable} = structureChain.template get<${returnType}>();
@@ -4038,8 +4093,11 @@ std::string VulkanHppGenerator::constructCommandResultGetChain( std::string cons
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename X, typename Y, typename... Z, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    )" HEADER_MACRO R"(_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<StructureChain<X, Y, Z...>>::type ${commandName}( ${argumentList} ) const;)";
+      R"(  template <typename X, typename Y, typename... Z)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+#endif
+      ">\n  " HEADER_MACRO R"(_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<StructureChain<X, Y, Z...>>::type ${commandName}( ${argumentList} ) const;)";
 
     return replaceWithMap( functionTemplate, { { "argumentList", argumentList }, { "commandName", commandName } } );
   }
@@ -4066,13 +4124,27 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename Dispatch>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<UniqueHandle<${returnBaseType}, Dispatch>>::type ${className}${classSeparator}${commandName}Unique( ${argumentList} )${const}
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch>)" "\n"
+#endif
+      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<UniqueHandle<${returnBaseType})"
+#ifdef NEEDS_DISPATCH
+      ", Dispatch"
+#endif
+      R"(>>::type ${className}${classSeparator}${commandName}Unique( ${argumentList} )${const}
   {
     ${returnBaseType} ${returnValueName};
     Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
-    ${ObjectDeleter}<${parentName}, Dispatch> deleter( ${this}${allocator}d );
-    return createResultValue<${returnBaseType}, Dispatch>( result, ${returnValueName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}Unique", deleter );
+    ${ObjectDeleter}<${parentName})"
+#ifdef NEEDS_DISPATCH
+      ", Dispatch"
+#endif
+      R"(> deleter( ${this}${allocator}d );
+    return createResultValue<${returnBaseType})"
+#ifdef NEEDS_DISPATCH
+      ", Dispatch"
+#endif
+      R"(>( result, ${returnValueName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}Unique", deleter );
   })";
 
     std::string objectDeleter, allocator;
@@ -4127,8 +4199,10 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
   else
   {
     std::string const functionTemplate =
-      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<UniqueHandle<${returnBaseType}, Dispatch>>::type ${commandName}Unique( ${argumentList} )${const};)";
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)" ">\n"
+#endif
+      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<UniqueHandle<${returnBaseType}, Dispatch>>::type ${commandName}Unique( ${argumentList} )${const};)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -4168,8 +4242,10 @@ std::string
   if ( definition )
   {
     const std::string functionTemplate =
-      R"(  template <typename Dispatch>
-  )" HEADER_MACRO R"(_INLINE Result ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch>)" "\n"
+#endif
+      "  " HEADER_MACRO R"(_INLINE Result ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
   {${vectorSizeCheck}
     Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
     return createResultValue( result, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
@@ -4193,8 +4269,10 @@ std::string
   else
   {
     const std::string functionTemplate =
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    Result ${commandName}( ${argumentList} ) const ${noexcept};)";
+#ifdef NEEDS_DISPATCH
+      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)>)" "\n"
+#endif
+      R"(    Result ${commandName}( ${argumentList} ) const ${noexcept};)";
 
     return replaceWithMap( functionTemplate,
                            {
@@ -4227,8 +4305,10 @@ std::string VulkanHppGenerator::constructCommandResultGetValue( std::string cons
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename Dispatch>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} )${const}
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch>)" "\n"
+#endif
+      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} )${const}
   {
     ${returnBaseType} ${returnValueName};
     Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
@@ -4254,8 +4334,10 @@ std::string VulkanHppGenerator::constructCommandResultGetValue( std::string cons
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    ${nodiscard}${returnType} ${commandName}( ${argumentList} )${const};)";
+#ifdef NEEDS_DISPATCH
+      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)" "\n"
+#endif
+      R"(    ${nodiscard}${returnType} ${commandName}( ${argumentList} )${const};)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -4287,8 +4369,10 @@ std::string
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename Dispatch>
-  )" HEADER_MACRO R"(_DEPRECATED( "This function is deprecated. Use one of the other flavours of it.")
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch>)" "\n"
+#endif
+      "  " HEADER_MACRO R"(_DEPRECATED( "This function is deprecated. Use one of the other flavours of it.")
   ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<${returnType}>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     ${functionBody}
@@ -4309,8 +4393,10 @@ std::string
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    ${nodiscard}typename ResultValueType<${returnType}>::type ${commandName}( ${argumentList} ) const;)";
+#ifdef NEEDS_DISPATCH
+      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)" "\n"
+#endif
+      R"(    ${nodiscard}typename ResultValueType<${returnType}>::type ${commandName}( ${argumentList} ) const;)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -4340,8 +4426,11 @@ std::string VulkanHppGenerator::constructCommandResultGetVector( std::string con
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename T, typename Allocator, typename Dispatch>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      R"(  template <typename T, typename Allocator)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch)"
+#endif
+      ">\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     )" HEADER_MACRO R"(_ASSERT( ${dataSize} % sizeof( T ) == 0 );
     std::vector<T,Allocator> ${dataName}( ${dataSize} / sizeof( T ) );
@@ -4367,8 +4456,11 @@ std::string VulkanHppGenerator::constructCommandResultGetVector( std::string con
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename T, typename Allocator = std::allocator<T>, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
+      R"(    template <typename T, typename Allocator = std::allocator<T>)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+#endif
+      ">\n" R"(    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -4411,8 +4503,11 @@ std::string
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename ${allocatorType}, typename Dispatch${typenameCheck}>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<std::pair<std::vector<${vectorElementType}, ${allocatorType}>, ${valueType}>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      R"(  template <typename ${allocatorType})"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch)"
+#endif
+      "${typenameCheck}>\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<std::pair<std::vector<${vectorElementType}, ${allocatorType}>, ${valueType}>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     std::pair<std::vector<${vectorElementType}, ${allocatorType}>,${valueType}> data( std::piecewise_construct, std::forward_as_tuple( ${vectorSize}${allocateInitializer} ), std::forward_as_tuple( 0 ) );
     std::vector<${vectorElementType}, ${allocatorType}> & ${vectorName} = data.first;
@@ -4451,8 +4546,11 @@ std::string
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename ${allocatorType} = std::allocator<${vectorElementType}>, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE${typenameCheck}>
-    ${nodiscard}typename ResultValueType<std::pair<std::vector<${vectorElementType}, ${allocatorType}>, ${valueType}>>::type ${commandName}( ${argumentList} ) const;)";
+      R"(    template <typename ${allocatorType} = std::allocator<${vectorElementType}>)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+#endif
+      "${typenameCheck}>\n" R"(    ${nodiscard}typename ResultValueType<std::pair<std::vector<${vectorElementType}, ${allocatorType}>, ${valueType}>>::type ${commandName}( ${argumentList} ) const;)";
 
     std::string typenameCheck = withAllocator ? ( ", typename B = " + allocatorType +
                                                   ", typename std::enable_if<std::is_same<typename B::value_type, " +
@@ -4488,8 +4586,11 @@ std::string
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename T, typename Dispatch>
-  )" HEADER_MACRO R"(_DEPRECATED( "This function is deprecated. Use one of the other flavours of it.")
+      R"(  template <typename T)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch)"
+#endif
+      ">\n  " HEADER_MACRO R"(_DEPRECATED( "This function is deprecated. Use one of the other flavours of it.")
   ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     ${functionBody}
@@ -4510,8 +4611,11 @@ std::string
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename T, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
+      R"(    template <typename T)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+#endif
+      ">\n" R"(    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -4547,8 +4651,11 @@ std::string
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename ${handleType}Allocator, typename Dispatch${typenameCheck}>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      R"(  template <typename ${handleType}Allocator)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch)"
+#endif
+      "${typenameCheck}>\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     std::vector<${handleType}, ${handleType}Allocator> ${vectorName}( ${vectorSize}${vectorAllocator} );
     Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
@@ -4582,8 +4689,11 @@ std::string
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename ${handleType}Allocator = std::allocator<${handleType}>, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE${typenameCheck}>
-    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
+      R"(    template <typename ${handleType}Allocator = std::allocator<${handleType}>)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+#endif
+      "${typenameCheck}>\n" R"(    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
 
     std::string typenameCheck = withAllocator
                                   ? ( ", typename B = " + handleType +
@@ -4630,8 +4740,10 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesSingular
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename Dispatch>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch>)" "\n"
+#endif
+      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     ${handleType} ${handleName};
     Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
@@ -4657,8 +4769,10 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesSingular
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)" "\n"
+#endif
+      R"(  ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -4688,17 +4802,32 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
   std::string handleType = stripPrefix( commandData.params[returnParamIndex].type.type, STRUCT_PREFIX );
   std::string returnType =
     ( commandData.successCodes.size() == 1 )
-      ? ( "typename ResultValueType<std::vector<UniqueHandle<" + handleType + ", Dispatch>, " + handleType +
-          "Allocator>>::type" )
-      : ( "ResultValue<std::vector<UniqueHandle<" + handleType + ", Dispatch>, " + handleType + "Allocator>>" );
+      ? ( "typename ResultValueType<std::vector<UniqueHandle<" + handleType +
+#ifdef NEEDS_DISPATCH
+        ", Dispatch" +
+#endif
+        ">, " + handleType + "Allocator>>::type" )
+      : ( "ResultValue<std::vector<UniqueHandle<" + handleType +
+#ifdef NEEDS_DISPATCH
+        ", Dispatch" + 
+#endif
+        ">, " + handleType + "Allocator>>" );
 
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename Dispatch, typename ${handleType}Allocator${typenameCheck}>
+      R"(  template <)"
+#ifdef NEEDS_DISPATCH
+      R"(typename Dispatch, )"
+#endif
+      R"(typename ${handleType}Allocator${typenameCheck}>
   ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}Unique( ${argumentList} ) const
   {
-    std::vector<UniqueHandle<${handleType}, Dispatch>, ${handleType}Allocator> ${uniqueVectorName}${vectorAllocator};
+    std::vector<UniqueHandle<${handleType})"
+#ifdef NEEDS_DISPATCH
+        ", Dispatch"
+#endif
+      R"(>, ${handleType}Allocator> ${uniqueVectorName}${vectorAllocator};
     std::vector<${handleType}> ${vectorName}( ${vectorSize} );
     Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
     if ( ${successCheck} )
@@ -4707,7 +4836,11 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
       ${deleterDefinition};
       for ( size_t i=0; i < ${vectorSize}; i++ )
       {
-        ${uniqueVectorName}.push_back( UniqueHandle<${handleType}, Dispatch>( ${vectorName}[i], deleter ) );
+        ${uniqueVectorName}.push_back( UniqueHandle<${handleType})"
+#ifdef NEEDS_DISPATCH
+        ", Dispatch"
+#endif
+      R"(>( ${vectorName}[i], deleter ) );
       }
     }
     return createResultValue( result, std::move( ${uniqueVectorName} ), )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}Unique"${successCodeList} );
@@ -4719,7 +4852,11 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
     std::vector<std::string> lenParts = tokenize( commandData.params[returnParamIndex].len, "->" );
     switch ( lenParts.size() )
     {
-      case 1: deleterDefinition = "ObjectDestroy<" + className + ", Dispatch> deleter( *this, allocator, d )"; break;
+      case 1: deleterDefinition = "ObjectDestroy<" + className +
+#ifdef NEEDS_DISPATCH
+        ", Dispatch" +
+#endif
+        "> deleter( *this, allocator, d )"; break;
       case 2:
       {
         auto vpiIt = vectorParamIndices.find( returnParamIndex );
@@ -4731,14 +4868,22 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
         poolName = startLowerCase( stripPrefix( lenParts[0], "p" ) ) + "." + poolName;
 
         deleterDefinition =
-          "PoolFree<" + className + ", " + poolType + ", Dispatch> deleter( *this, " + poolName + ", d )";
+          "PoolFree<" + className + ", " + poolType +
+#ifdef NEEDS_DISPATCH
+          ", Dispatch" +
+#endif
+          "> deleter( *this, " + poolName + ", d )";
       }
       break;
     }
 
     std::string typenameCheck =
       withAllocator ? ( ", typename B, typename std::enable_if<std::is_same<typename B::value_type, UniqueHandle<" +
-                        handleType + ", Dispatch>>::value, int>::type " )
+                        handleType +
+#ifdef NEEDS_DISPATCH
+                        ", Dispatch" +
+#endif
+                        ">>::value, int>::type " )
                     : "";
     std::string vectorName = startLowerCase( stripPrefix( commandData.params[returnParamIndex].name, "p" ) );
 
@@ -4766,13 +4911,25 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE, typename ${handleType}Allocator = std::allocator<UniqueHandle<${handleType}, Dispatch>>${typenameCheck}>
-    ${nodiscard}${returnType} ${commandName}Unique( ${argumentList} ) const;)";
+      "    template <"
+#ifdef NEEDS_DISPATCH
+      "typename Dispatch = " HEADER_MACRO "_DEFAULT_DISPATCHER_TYPE, "
+#endif
+      "typename ${handleType}Allocator = std::allocator<UniqueHandle<${handleType}"
+#ifdef NEEDS_DISPATCH
+      ", Dispatch"
+#endif
+      ">>${typenameCheck}>\n"
+      "    ${nodiscard}${returnType} ${commandName}Unique( ${argumentList} ) const;";
 
     std::string typenameCheck =
       withAllocator ? ( ", typename B = " + handleType +
                         "Allocator, typename std::enable_if<std::is_same<typename B::value_type, UniqueHandle<" +
-                        handleType + ", Dispatch>>::value, int>::type = 0" )
+                        handleType +
+#ifdef NEEDS_DISPATCH
+                        ", Dispatch" +
+#endif
+                        ">>::value, int>::type = 0" )
                     : "";
 
     return replaceWithMap( functionTemplate,
@@ -4808,19 +4965,37 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUniqueSi
   std::string nodiscard  = determineNoDiscard( 1 < commandData.successCodes.size(), 1 < commandData.errorCodes.size() );
   std::string handleType = stripPrefix( commandData.params[returnParamIndex].type.type, STRUCT_PREFIX );
   std::string returnType = ( commandData.successCodes.size() == 1 )
-                             ? ( "typename ResultValueType<UniqueHandle<" + handleType + ", Dispatch>>::type" )
-                             : ( "ResultValue<UniqueHandle<" + handleType + ", Dispatch>>" );
+                             ? ( "typename ResultValueType<UniqueHandle<" + handleType +
+#ifdef NEEDS_DISPATCH
+                               ", Dispatch" +
+#endif
+                               ">>::type" )
+                             : ( "ResultValue<UniqueHandle<" + handleType +
+#ifdef NEEDS_DISPATCH
+                               ", Dispatch" +
+#endif
+                               ">>" );
 
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename Dispatch>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}Unique( ${argumentList} ) const
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch>)" "\n"
+#endif
+      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}Unique( ${argumentList} ) const
   {
     ${handleType} ${handleName};
     Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
-    ObjectDestroy<${className}, Dispatch> deleter( *this, allocator, d );
-    return createResultValue<${handleType}, Dispatch>( result, ${handleName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}Unique"${successCodeList}, deleter );
+    ObjectDestroy<${className})"
+#ifdef NEEDS_DISPATCH
+      ", Dispatch"
+#endif
+      R"(> deleter( *this, allocator, d );
+    return createResultValue<${handleType})"
+#ifdef NEEDS_DISPATCH
+      ", Dispatch"
+#endif
+      R"(>( result, ${handleName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}Unique"${successCodeList}, deleter );
   })";
 
     return replaceWithMap(
@@ -4842,8 +5017,10 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUniqueSi
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    ${nodiscard}${returnType} ${commandName}Unique( ${argumentList} ) const;)";
+#ifdef NEEDS_DISPATCH
+      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)" "\n"
+#endif
+      R"(    ${nodiscard}${returnType} ${commandName}Unique( ${argumentList} ) const;)";
 
     return replaceWithMap( functionTemplate,
                            {
@@ -4876,8 +5053,11 @@ std::string
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename T, typename Dispatch>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      R"(  template <typename T)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch)"
+#endif
+      ">\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     T ${dataName};
     Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
@@ -4901,8 +5081,11 @@ std::string
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename T, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
+      R"(  template <typename T)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+#endif
+      ">\n" R"(  ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -4937,8 +5120,10 @@ std::string VulkanHppGenerator::constructCommandStandard( std::string const & na
     }
 
     std::string const functionTemplate =
-      R"(  template <typename Dispatch>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} )${const} )" HEADER_MACRO R"(_NOEXCEPT
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch>)" "\n"
+#endif
+      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} )${const} )" HEADER_MACRO R"(_NOEXCEPT
   {
     ${functionBody};
   })";
@@ -4956,8 +5141,14 @@ std::string VulkanHppGenerator::constructCommandStandard( std::string const & na
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    ${nodiscard}${returnType} ${commandName}( ${argumentList} )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_ASSIGNMENT )${const} )" HEADER_MACRO R"(_NOEXCEPT;)";
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)" ">\n"
+#endif
+      R"(  ${nodiscard}${returnType} ${commandName}( ${argumentList} )"
+#ifdef NEEDS_DISPATCH
+      HEADER_MACRO R"(_DEFAULT_DISPATCHER_ASSIGNMENT )"
+#endif
+      R"()${const} )" HEADER_MACRO R"(_NOEXCEPT;)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -4986,8 +5177,10 @@ std::string VulkanHppGenerator::constructCommandType( std::string const & name,
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename Dispatch>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch>)" "\n"
+#endif
+      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT
   {
     return d.${vkCommand}( ${callArguments} );
   })";
@@ -5006,8 +5199,10 @@ std::string VulkanHppGenerator::constructCommandType( std::string const & name,
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT;)";
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)" ">\n"
+#endif
+      R"(  ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT;)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -5040,8 +5235,11 @@ std::string VulkanHppGenerator::constructCommandVoid( std::string const &       
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <${typenameT}typename Dispatch>
-  )" HEADER_MACRO R"(_INLINE void ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
+      R"(  template <${typenameT})"
+#ifdef NEEDS_DISPATCH
+      R"(typename Dispatch)"
+#endif
+      ">\n  " HEADER_MACRO R"(_INLINE void ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
   {${vectorSizeCheck}
     d.${vkCommand}( ${callArguments} );
   })";
@@ -5064,8 +5262,11 @@ std::string VulkanHppGenerator::constructCommandVoid( std::string const &       
   else
   {
     std::string const functionTemplate =
-      R"(    template <${typenameT}typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    void ${commandName}( ${argumentList} ) const ${noexcept};)";
+      R"(  template <${typenameT})"
+#ifdef NEEDS_DISPATCH
+      R"(typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+#endif
+      ">\n" R"(void ${commandName}( ${argumentList} ) const ${noexcept};)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -5096,8 +5297,11 @@ std::string VulkanHppGenerator::constructCommandVoidEnumerate( std::string const
   if ( definition )
   {
     const std::string functionTemplate =
-      R"(  template <typename ${vectorElementType}Allocator, typename Dispatch${typenameCheck}>
-  )" HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE std::vector<${vectorElementType}, ${vectorElementType}Allocator> ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      R"(  template <typename ${vectorElementType}Allocator)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch)"
+#endif
+      "${typenameCheck}>\n  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE std::vector<${vectorElementType}, ${vectorElementType}Allocator> ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     std::vector<${vectorElementType}, ${vectorElementType}Allocator> ${vectorName}${vectorAllocator};
     ${counterType} ${counterName};
@@ -5139,8 +5343,11 @@ std::string VulkanHppGenerator::constructCommandVoidEnumerate( std::string const
   else
   {
     const std::string functionTemplate =
-      R"(    template <typename ${vectorElementType}Allocator = std::allocator<${vectorElementType}>, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE${typenameCheck}>
-    )" HEADER_MACRO R"(_NODISCARD std::vector<${vectorElementType}, ${vectorElementType}Allocator> ${commandName}( ${argumentList} ) const;)";
+      R"(  template <typename ${vectorElementType}Allocator = std::allocator<${vectorElementType}>)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+#endif
+      "${typenameCheck}>\n  " HEADER_MACRO R"(_NODISCARD std::vector<${vectorElementType}, ${vectorElementType}Allocator> ${commandName}( ${argumentList} ) const;)";
 
     std::string typenameCheck = withAllocators
                                   ? ( ", typename B = " + vectorElementType +
@@ -5180,8 +5387,11 @@ std::string
   if ( definition )
   {
     const std::string functionTemplate =
-      R"(  template <typename StructureChain, typename StructureChainAllocator, typename Dispatch${typenameCheck}>
-  )" HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE std::vector<StructureChain, StructureChainAllocator> ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      R"(  template <typename StructureChain, typename StructureChainAllocator)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch)"
+#endif
+      "${typenameCheck}>\n  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE std::vector<StructureChain, StructureChainAllocator> ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     ${counterType} ${counterName};
     d.${vkCommand}( ${firstCallArguments} );
@@ -5228,8 +5438,11 @@ std::string
   else
   {
     const std::string functionTemplate =
-      R"(    template <typename StructureChain, typename StructureChainAllocator = std::allocator<StructureChain>, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE${typenameCheck}>
-    )" HEADER_MACRO R"(_NODISCARD std::vector<StructureChain, StructureChainAllocator> ${commandName}( ${argumentList} ) const;)";
+      R"(  template <typename StructureChain, typename StructureChainAllocator = std::allocator<StructureChain>)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+#endif
+      "${typenameCheck}>\n  " HEADER_MACRO R"(_NODISCARD std::vector<StructureChain, StructureChainAllocator> ${commandName}( ${argumentList} ) const;)";
 
     std::string typenameCheck =
       withAllocators
@@ -5263,8 +5476,11 @@ std::string VulkanHppGenerator::constructCommandVoidGetChain( std::string const 
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <typename X, typename Y, typename... Z, typename Dispatch>
-  )" HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE StructureChain<X, Y, Z...> ${className}${classSeparator}${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT
+      R"(  template <typename X, typename Y, typename... Z)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch)"
+#endif
+      ">\n  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE StructureChain<X, Y, Z...> ${className}${classSeparator}${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT
   {
     StructureChain<X, Y, Z...> structureChain;
     ${returnType} & ${returnVariable} = structureChain.template get<${returnType}>();
@@ -5287,8 +5503,11 @@ std::string VulkanHppGenerator::constructCommandVoidGetChain( std::string const 
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename X, typename Y, typename... Z, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    )" HEADER_MACRO R"(_NODISCARD StructureChain<X, Y, Z...> ${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT;)";
+      R"(  template <typename X, typename Y, typename... Z)"
+#ifdef NEEDS_DISPATCH
+      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+#endif
+      ">\n  " HEADER_MACRO R"(_NODISCARD StructureChain<X, Y, Z...> ${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT;)";
 
     return replaceWithMap( functionTemplate, { { "argumentList", argumentList }, { "commandName", commandName } } );
   }
@@ -5355,8 +5574,10 @@ std::string VulkanHppGenerator::constructCommandVoidGetValue( std::string const 
     }
 
     std::string const functionTemplate =
-      R"(  template <typename Dispatch>
-  )" HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch)" ">\n"
+#endif
+      "  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
   {${vectorSizeCheck}
     ${returnType} ${returnVariable};
     d.${vkCommand}( ${callArguments} );
@@ -5380,8 +5601,10 @@ std::string VulkanHppGenerator::constructCommandVoidGetValue( std::string const 
   else
   {
     std::string const functionTemplate =
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>
-    )" HEADER_MACRO R"(_NODISCARD ${returnType} ${commandName}( ${argumentList} ) const ${noexcept};)";
+#ifdef NEEDS_DISPATCH
+      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)" ">\n"
+#endif
+      "  " HEADER_MACRO R"(_NODISCARD ${returnType} ${commandName}( ${argumentList} ) const ${noexcept};)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -5504,11 +5727,15 @@ std::string
   {
     str += "Allocator const& vectorAllocator, ";
   }
+#ifdef NEEDS_DISPATCH
   str += "Dispatch const &d";
   if ( withDefaults )
   {
     str += " " HEADER_MACRO "_DEFAULT_DISPATCHER_ASSIGNMENT";
   }
+#else
+  static_cast<void>(withDefaults);
+#endif
   str += " ";
   return str;
 }
@@ -6432,16 +6659,33 @@ void VulkanHppGenerator::appendUniqueTypes( std::string &                 str,
     std::string enter, leave;
     std::tie( enter, leave ) = generateProtection( handleIt->first, !handleIt->second.alias.empty() );
 
-    str += enter + "  template <typename Dispatch> class UniqueHandleTraits<" + type +
-           ", Dispatch> { public: using deleter = " + deleterType + deleterAction + "<" + deleterParent + deleterPool +
-           ", Dispatch>; };\n"
+    str += enter + "  "
+#ifdef NEEDS_DISPATCH
+           "template <typename Dispatch> "
+#endif
+           "class UniqueHandleTraits<" + type +
+#ifdef NEEDS_DISPATCH
+           ", Dispatch"
+#endif
+           "> { public: using deleter = " + deleterType + deleterAction + "<" + deleterParent + deleterPool +
+#ifdef NEEDS_DISPATCH
+           ", Dispatch"
+#endif
+           ">; };\n"
            "  using Unique" +
-           type + " = UniqueHandle<" + type + ", " HEADER_MACRO "_DEFAULT_DISPATCHER_TYPE>;\n";
+           type + " = UniqueHandle<" + type +
+#ifdef NEEDS_DISPATCH
+           ", " HEADER_MACRO "_DEFAULT_DISPATCHER_TYPE"
+#endif
+           ">;\n";
 
     if ( !handleIt->second.alias.empty() )
     {
       str += "  using Unique" + stripPrefix( handleIt->second.alias, STRUCT_PREFIX ) + " = UniqueHandle<" + type +
-             ", " HEADER_MACRO "_DEFAULT_DISPATCHER_TYPE>;\n";
+#ifdef NEEDS_DISPATCH
+             ", " HEADER_MACRO "_DEFAULT_DISPATCHER_TYPE"
+#endif
+             ">;\n";
     }
     str += leave;
   }
@@ -6827,10 +7071,15 @@ std::string VulkanHppGenerator::determineEnhancedReturnType( CommandData const &
   assert( commandData.successCodes.empty() || ( commandData.successCodes[0] == MACRO_PREFIX "_SUCCESS" ) );
   return ( commandData.params[returnParamIndex].type.type == "void" )
            ? "std::vector<uint8_t,Allocator>"  // the return parameter is a vector-type parameter
-         : isStructureChain ? "std::vector<StructureChain,Allocator>"  // for structureChain returns, it's just
+#ifdef NEEDS_STRUCTURE_CHAIN
+           : isStructureChain ? "std::vector<StructureChain,Allocator>"  // for structureChain returns, it's just
                                                                        // a vector of StrutureChains
-                            : "std::vector<" + stripPrefix( commandData.params[returnParamIndex].type.type, STRUCT_PREFIX ) +
+#endif
+                              : "std::vector<" + stripPrefix( commandData.params[returnParamIndex].type.type, STRUCT_PREFIX ) +
                                 ",Allocator>";  // for the other parameters, we use a vector of the pure type
+#ifndef NEEDS_STRUCTURE_CHAIN
+  static_cast<void>(isStructureChain);
+#endif
 }
 
 size_t VulkanHppGenerator::determineReturnParamIndex( CommandData const &              commandData,
@@ -7354,6 +7603,7 @@ bool VulkanHppGenerator::isParam( std::string const & name, std::vector<ParamDat
 
 bool VulkanHppGenerator::isStructureChainAnchor( std::string const & type ) const
 {
+#ifdef NEEDS_STRUCTURE_CHAIN
   if ( beginsWith( type, STRUCT_PREFIX ) )
   {
     auto it = m_structures.find( type );
@@ -7369,6 +7619,9 @@ bool VulkanHppGenerator::isStructureChainAnchor( std::string const & type ) cons
       return m_extendedStructs.find( it->first ) != m_extendedStructs.end();
     }
   }
+#else
+  static_cast<void>(type);
+#endif
   return false;
 }
 
@@ -10355,7 +10608,11 @@ int main( int argc, char ** argv )
   static const std::string classObjectDestroy = R"(
   struct AllocationCallbacks;
 
-  template <typename OwnerType, typename Dispatch>
+  template <typename OwnerType)" 
+#ifdef NEEDS_DISPATCH
+    ", typename Dispatch"
+#endif
+    R"(>
   class ObjectDestroy
   {
     public:
@@ -10363,11 +10620,19 @@ int main( int argc, char ** argv )
 
     ObjectDestroy( OwnerType owner,
                    Optional<const AllocationCallbacks> allocationCallbacks
-                                    )" HEADER_MACRO R"(_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT,
-                   Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER ) )" HEADER_MACRO R"(_NOEXCEPT
+                                    )" HEADER_MACRO R"(_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT)"
+#ifdef NEEDS_DISPATCH
+    R"(,
+                   Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
+#endif
+    " ) " HEADER_MACRO R"(_NOEXCEPT
       : m_owner( owner )
-      , m_allocationCallbacks( allocationCallbacks )
-      , m_dispatch( &dispatch )
+      , m_allocationCallbacks( allocationCallbacks ))"
+#ifdef NEEDS_DISPATCH
+    R"(
+      , m_dispatch( &dispatch ))"
+#endif
+    R"(
     {}
 
       OwnerType getOwner() const )" HEADER_MACRO R"(_NOEXCEPT { return m_owner; }
@@ -10377,28 +10642,54 @@ int main( int argc, char ** argv )
       template <typename T>
       void destroy(T t) )" HEADER_MACRO R"(_NOEXCEPT
       {
-        )" HEADER_MACRO R"(_ASSERT( m_owner && m_dispatch );
-        m_owner.destroy( t, m_allocationCallbacks, *m_dispatch );
+        )" HEADER_MACRO R"(_ASSERT( m_owner)"
+#ifdef NEEDS_DISPATCH
+    " && m_dispatch"
+#endif
+    R"( );
+        m_owner.destroy( t, m_allocationCallbacks)"
+#ifdef NEEDS_DISPATCH
+    ", *m_dispatch"
+#endif
+    R"( );
       }
 
     private:
     OwnerType                           m_owner               = {};
-    Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;
-    Dispatch const *                    m_dispatch            = nullptr;
+    Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;)"
+#ifdef NEEDS_DISPATCH
+    "\nDispatch const *                    m_dispatch            = nullptr;"
+#endif
+    R"(
   };
 
   class NoParent;
 
-  template <typename Dispatch>
-  class ObjectDestroy<NoParent,Dispatch>
+  template <)"
+#ifdef NEEDS_DISPATCH
+    "typename Dispatch"
+#endif
+    ">\n" R"(  class ObjectDestroy<NoParent)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>
   {
     public:
     ObjectDestroy() = default;
 
-    ObjectDestroy( Optional<const AllocationCallbacks> allocationCallbacks,
-                   Dispatch const &                    dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER ) )" HEADER_MACRO R"(_NOEXCEPT
-      : m_allocationCallbacks( allocationCallbacks )
-      , m_dispatch( &dispatch )
+    ObjectDestroy( Optional<const AllocationCallbacks> allocationCallbacks)"
+#ifdef NEEDS_DISPATCH
+    R"(,
+                   Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
+#endif
+    " ) " HEADER_MACRO R"(_NOEXCEPT
+      : m_allocationCallbacks( allocationCallbacks ))"
+#ifdef NEEDS_DISPATCH
+    R"(
+      , m_dispatch( &dispatch ))"
+#endif
+    R"(
     {}
 
       Optional<const AllocationCallbacks> getAllocator() const )" HEADER_MACRO R"(_NOEXCEPT { return m_allocationCallbacks; }
@@ -10407,29 +10698,51 @@ int main( int argc, char ** argv )
       template <typename T>
       void destroy(T t) )" HEADER_MACRO R"(_NOEXCEPT
       {
-        )" HEADER_MACRO R"(_ASSERT( m_dispatch );
-        t.destroy( m_allocationCallbacks, *m_dispatch );
+        )"
+#ifdef NEEDS_DISPATCH
+    HEADER_MACRO R"(_ASSERT( m_dispatch );)" "\n        "
+#endif
+    "t.destroy( m_allocationCallbacks"
+#ifdef NEEDS_DISPATCH
+    ", *m_dispatch"
+#endif
+    R"( );
       }
 
     private:
-    Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;
-    Dispatch const *                    m_dispatch            = nullptr;
+    Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;)"
+#ifdef NEEDS_DISPATCH
+    "\nDispatch const *                    m_dispatch            = nullptr;"
+#endif
+    R"(
   };
 )";
 
   static const std::string classObjectFree = R"(
-  template <typename OwnerType, typename Dispatch>
+  template <typename OwnerType)" 
+#ifdef NEEDS_DISPATCH
+      ", typename Dispatch"
+#endif
+      R"(>
   class ObjectFree
   {
   public:
     ObjectFree() = default;
 
-    ObjectFree( OwnerType                                               owner,
-                Optional<const AllocationCallbacks> allocationCallbacks )" HEADER_MACRO R"(_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT,
-                Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER ) )" HEADER_MACRO R"(_NOEXCEPT
+    ObjectFree( OwnerType owner,
+                Optional<const AllocationCallbacks> allocationCallbacks )" HEADER_MACRO R"(_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT)"
+#ifdef NEEDS_DISPATCH
+      R"(,
+                Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
+#endif
+      " ) " HEADER_MACRO R"(_NOEXCEPT
       : m_owner( owner )
-      , m_allocationCallbacks( allocationCallbacks )
-      , m_dispatch( &dispatch )
+      , m_allocationCallbacks( allocationCallbacks ))"
+#ifdef NEEDS_DISPATCH
+      R"(
+      , m_dispatch( &dispatch ))"
+#endif
+      R"(
     {}
 
     OwnerType getOwner() const )" HEADER_MACRO R"(_NOEXCEPT
@@ -10446,27 +10759,50 @@ int main( int argc, char ** argv )
     template <typename T>
     void destroy( T t ) )" HEADER_MACRO R"(_NOEXCEPT
     {
-      )" HEADER_MACRO R"(_ASSERT( m_owner && m_dispatch );
-      m_owner.free( t, m_allocationCallbacks, *m_dispatch );
+      )" HEADER_MACRO R"(_ASSERT( m_owner)"
+#ifdef NEEDS_DISPATCH
+    " && m_dispatch"
+#endif
+    R"( );
+      m_owner.free( t, m_allocationCallbacks)"
+#ifdef NEEDS_DISPATCH
+    ", *m_dispatch"
+#endif
+    R"( );
     }
 
   private:
     OwnerType                           m_owner               = {};
-    Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;
-    Dispatch const *                    m_dispatch            = nullptr;
+    Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;)"
+#ifdef NEEDS_DISPATCH
+    "\nDispatch const *                    m_dispatch            = nullptr;"
+#endif
+    R"(
   };
 )";
 
   static const std::string classObjectRelease = R"(
-  template <typename OwnerType, typename Dispatch>
+  template <typename OwnerType)" 
+#ifdef NEEDS_DISPATCH
+      ", typename Dispatch"
+#endif
+      R"(>
   class ObjectRelease
   {
   public:
     ObjectRelease() = default;
 
-    ObjectRelease( OwnerType owner, Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER ) )" HEADER_MACRO R"(_NOEXCEPT
-      : m_owner( owner )
-      , m_dispatch( &dispatch )
+    ObjectRelease( OwnerType owner)"
+#ifdef NEEDS_DISPATCH
+    R"(, Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
+#endif
+    " ) " HEADER_MACRO R"(_NOEXCEPT
+      : m_owner( owner ))"
+#ifdef NEEDS_DISPATCH
+    R"(
+      , m_dispatch( &dispatch ))"
+#endif
+    R"(
     {}
 
     OwnerType getOwner() const )" HEADER_MACRO R"(_NOEXCEPT
@@ -10478,13 +10814,24 @@ int main( int argc, char ** argv )
     template <typename T>
     void destroy( T t ) )" HEADER_MACRO R"(_NOEXCEPT
     {
-      )" HEADER_MACRO R"(_ASSERT( m_owner && m_dispatch );
-      m_owner.release( t, *m_dispatch );
+      )" HEADER_MACRO R"(_ASSERT( m_owner)"
+#ifdef NEEDS_DISPATCH
+    " && m_dispatch"
+#endif
+    R"( );
+      m_owner.release( t)"
+#ifdef NEEDS_DISPATCH
+    ", *m_dispatch"
+#endif
+    R"( );
     }
 
   private:
-    OwnerType        m_owner    = {};
-    Dispatch const * m_dispatch = nullptr;
+    OwnerType        m_owner    = {};)"
+#ifdef NEEDS_DISPATCH
+    "\nDispatch const * m_dispatch = nullptr;"
+#endif
+    R"(
   };
 )";
 
@@ -10507,19 +10854,31 @@ int main( int argc, char ** argv )
 )";
 
   static const std::string classPoolFree = R"(
-  template <typename OwnerType, typename PoolType, typename Dispatch>
+  template <typename OwnerType, typename PoolType)" 
+#ifdef NEEDS_DISPATCH
+    ", typename Dispatch"
+#endif
+    R"(>
   class PoolFree
   {
     public:
       PoolFree() = default;
 
-      PoolFree( OwnerType        owner,
-                PoolType         pool,
-                Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER ) )" HEADER_MACRO R"(_NOEXCEPT
-        : m_owner( owner )
-        , m_pool( pool )
-        , m_dispatch( &dispatch )
-      {}
+    PoolFree( OwnerType        owner,
+              PoolType         pool)"
+#ifdef NEEDS_DISPATCH
+    R"(,
+              Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
+#endif
+    " ) " HEADER_MACRO R"(_NOEXCEPT
+      : m_owner( owner )
+      , m_pool( pool ))"
+#ifdef NEEDS_DISPATCH
+    R"(
+      , m_dispatch( &dispatch ))"
+#endif
+    R"(
+    {}
 
       OwnerType getOwner() const )" HEADER_MACRO R"(_NOEXCEPT { return m_owner; }
       PoolType getPool() const )" HEADER_MACRO R"(_NOEXCEPT { return m_pool; }
@@ -10528,16 +10887,24 @@ int main( int argc, char ** argv )
       template <typename T>
       void destroy(T t) )" HEADER_MACRO R"(_NOEXCEPT
       {
-        m_owner.free( m_pool, t, *m_dispatch );
+        m_owner.free( m_pool, t)"
+#ifdef NEEDS_DISPATCH
+    ", *m_dispatch"
+#endif
+    R"( );
       }
 
     private:
       OwnerType        m_owner    = OwnerType();
-      PoolType         m_pool     = PoolType();
-      Dispatch const * m_dispatch = nullptr;
+      PoolType         m_pool     = PoolType();)"
+#ifdef NEEDS_DISPATCH
+    "\nDispatch const * m_dispatch = nullptr;"
+#endif
+    R"(
   };
 )";
 
+#ifdef NEEDS_STRUCTURE_CHAIN
   static const std::string classStructureChain = R"(
   template <typename X, typename Y> struct StructExtends { enum { value = false }; };
 
@@ -10763,16 +11130,33 @@ int main( int argc, char ** argv )
     }
   };
 )";
+#endif
 
   static const std::string classUniqueHandle = R"(
 #if !defined()" HEADER_MACRO R"(_NO_SMART_HANDLE)
-  template <typename Type, typename Dispatch> class UniqueHandleTraits;
+  template <typename Type)"
+#ifdef NEEDS_DISPATCH
+    ", typename Dispatch"
+#endif
+    R"(> class UniqueHandleTraits;
 
-  template <typename Type, typename Dispatch>
-  class UniqueHandle : public UniqueHandleTraits<Type,Dispatch>::deleter
+  template <typename Type)"
+#ifdef NEEDS_DISPATCH
+    ", typename Dispatch"
+#endif
+    R"(>
+  class UniqueHandle : public UniqueHandleTraits<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>::deleter
   {
   private:
-    using Deleter = typename UniqueHandleTraits<Type,Dispatch>::deleter;
+    using Deleter = typename UniqueHandleTraits<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>::deleter;
 
   public:
     using element_type = Type;
@@ -10859,7 +11243,11 @@ int main( int argc, char ** argv )
       return value;
     }
 
-    void swap( UniqueHandle<Type,Dispatch> & rhs ) )" HEADER_MACRO R"(_NOEXCEPT
+    void swap( UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(> & rhs ) )" HEADER_MACRO R"(_NOEXCEPT
     {
       std::swap(m_value, rhs.m_value);
       std::swap(static_cast<Deleter&>(*this), static_cast<Deleter&>(rhs));
@@ -10877,8 +11265,20 @@ int main( int argc, char ** argv )
     return newBuffer;
   }
 
-  template <typename Type, typename Dispatch>
-  )" HEADER_MACRO R"(_INLINE void swap( UniqueHandle<Type,Dispatch> & lhs, UniqueHandle<Type,Dispatch> & rhs ) )" HEADER_MACRO R"(_NOEXCEPT
+  template <typename Type)"
+#ifdef NEEDS_DISPATCH
+    ", typename Dispatch"
+#endif
+    R"(>
+  )" HEADER_MACRO R"(_INLINE void swap( UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(> & lhs, UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(> & rhs ) )" HEADER_MACRO R"(_NOEXCEPT
   {
     lhs.swap( rhs );
   }
@@ -11095,7 +11495,7 @@ int main( int argc, char ** argv )
 #include <system_error>
 #include <tuple>
 #include <type_traits>
-#include <vulkan/vulkan.h>
+#include <)" INCLUDED_FILENAME R"(>
 
 #if 17 <= )" HEADER_MACRO R"(_CPP_VERSION
 #include <string_view>
@@ -11220,59 +11620,119 @@ namespace std
   };
 
 #if !defined()" HEADER_MACRO R"(_NO_SMART_HANDLE)
-  template <typename Type, typename Dispatch>
-  struct ResultValue<UniqueHandle<Type,Dispatch>>
+  template <typename Type)"
+#ifdef NEEDS_DISPATCH
+    ", typename Dispatch"
+#endif
+    R"(>
+  struct ResultValue<UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>>
   {
 #ifdef )" HEADER_MACRO R"(_HAS_NOEXCEPT
-    ResultValue(Result r, UniqueHandle<Type, Dispatch> && v) )" HEADER_MACRO R"(_NOEXCEPT
+    ResultValue(Result r, UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(> && v) )" HEADER_MACRO R"(_NOEXCEPT
 #else
-    ResultValue(Result r, UniqueHandle<Type, Dispatch> && v)
+    ResultValue(Result r, UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(> && v)
 #endif
       : result(r)
       , value(std::move(v))
     {}
 
-    std::tuple<Result, UniqueHandle<Type, Dispatch>> asTuple()
+    std::tuple<Result, UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>> asTuple()
     {
       return std::make_tuple( result, std::move( value ) );
     }
 
 #  if !defined()" HEADER_MACRO R"(_DISABLE_IMPLICIT_RESULT_VALUE_CAST)
     )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
-    operator UniqueHandle<Type, Dispatch>& () & )" HEADER_MACRO R"(_NOEXCEPT
+    operator UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>& () & )" HEADER_MACRO R"(_NOEXCEPT
     {
       return value;
     }
 
     )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
-    operator UniqueHandle<Type, Dispatch>() )" HEADER_MACRO R"(_NOEXCEPT
+    operator UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>() )" HEADER_MACRO R"(_NOEXCEPT
     {
       return std::move(value);
     }
 #  endif
 
     Result                        result;
-    UniqueHandle<Type, Dispatch>  value;
+    UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>  value;
   };
 
-  template <typename Type, typename Dispatch>
-  struct ResultValue<std::vector<UniqueHandle<Type, Dispatch>>>
+  template <typename Type)"
+#ifdef NEEDS_DISPATCH
+    ", typename Dispatch"
+#endif
+    R"(>
+  struct ResultValue<std::vector<UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>>>
   {
 #  ifdef )" HEADER_MACRO R"(_HAS_NOEXCEPT
-    ResultValue( Result r, std::vector<UniqueHandle<Type, Dispatch>> && v ) )" HEADER_MACRO R"(_NOEXCEPT
+    ResultValue( Result r, std::vector<UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>> && v ) )" HEADER_MACRO R"(_NOEXCEPT
 #  else
-    ResultValue( Result r, std::vector<UniqueHandle<Type, Dispatch>> && v )
+    ResultValue( Result r, std::vector<UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>> && v )
 #  endif
       : result( r )
       , value( std::move( v ) )
     {}
 
     Result                                    result;
-    std::vector<UniqueHandle<Type, Dispatch>> value;
+    std::vector<UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>> value;
 
-    operator std::tuple<Result &, std::vector<UniqueHandle<Type, Dispatch>> &>() )" HEADER_MACRO R"(_NOEXCEPT
+    operator std::tuple<Result &, std::vector<UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>> &>() )" HEADER_MACRO R"(_NOEXCEPT
     {
-      return std::tuple<Result &, std::vector<UniqueHandle<Type, Dispatch>> &>( result, value );
+      return std::tuple<Result &, std::vector<UniqueHandle<Type)"
+#ifdef NEEDS_DISPATCH
+    ", Dispatch"
+#endif
+    R"(>> &>( result, value );
     }
   };
 #endif
@@ -11469,12 +11929,22 @@ namespace std
     static const size_t estimatedLength = 4 * 1024 * 1024;
     str.reserve( estimatedLength );
     str += generator.getVulkanLicenseHeader() + includes + "\n";
+#ifdef NEEDS_VERSION_CHECK
     appendVersionCheck( str, generator.getVersion() );
+#endif
     appendTypesafeStuff( str, generator.getTypesafeCheck() );
     str += defines + "\n" + "namespace " HEADER_MACRO "_NAMESPACE\n" + "{\n" + classArrayProxy + classArrayWrapper +
-           classFlags + classOptional + classStructureChain + classUniqueHandle;
+           classFlags + classOptional + 
+#ifdef NEEDS_STRUCTURE_CHAIN
+           classStructureChain + 
+#endif
+           classUniqueHandle;
+#ifdef NEEDS_DISPATCH
     generator.appendDispatchLoaderStatic( str );
     generator.appendDispatchLoaderDefault( str );
+#else
+    str += "#define " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT = {}\n# define " HEADER_MACRO "_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT = nullptr\n";
+#endif
     str += classObjectDestroy + classObjectFree + classObjectRelease + classPoolFree + "\n";
     generator.appendBaseTypes( str );
     str += typeTraits;
@@ -11489,8 +11959,12 @@ namespace std
     generator.appendStructs( str );
     generator.appendHandles( str );
     generator.appendHandlesCommandDefinitions( str );
+#ifdef NEEDS_STRUCTURE_CHAIN
     generator.appendStructureChainValidation( str );
+#endif
+#ifdef NEEDS_DISPATCH
     generator.appendDispatchLoaderDynamic( str );
+#endif
     str += "} // namespace " HEADER_MACRO "_NAMESPACE\n";
     generator.appendHashStructures( str );
     str += "#endif\n";
