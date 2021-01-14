@@ -71,7 +71,19 @@
 # define NEEDS_VERSION_CHECK true
 #endif
 #ifndef NO_STRUCTURE_CHAIN
-# define NEEDS_STRUCTURE_CHAIN
+# define NEEDS_STRUCTURE_CHAIN true
+#endif
+#ifndef NO_OBJECT_TYPE_ENUM
+# define NEEDS_OBJECT_TYPE_ENUM true
+#endif
+#ifndef NO_DEBUG_REPORT_OBJECT_TYPE_ENUM
+# define NEEDS_DEBUG_REPORT_OBJECT_TYPE_ENUM true
+#endif
+#ifndef NO_STRUCTURE_TYPE_ENUM
+# define NEEDS_STRUCTURE_TYPE_ENUM true
+#endif
+#ifndef NO_INDEX_TYPE_TRAITS
+# define NEEDS_INDEX_TYPE_TRAITS true
 #endif
 
 void             appendArgumentCount( std::string &       str,
@@ -425,7 +437,7 @@ std::vector<tinyxml2::XMLElement const *> getChildElements( ElementContainer con
 std::string getEnumPostfix( std::string const & name, std::set<std::string> const & tags, std::string & prefix )
 {
   std::string postfix;
-  if ( name != "VkResult" )
+  if ( name != STRUCT_PREFIX "Result" )
   {
     // if the enum name contains a tag move it from the prefix to the postfix to generate correct enum value names.
     for ( auto const & tag : tags )
@@ -449,7 +461,7 @@ std::string getEnumPostfix( std::string const & name, std::set<std::string> cons
 std::string getEnumPrefix( int line, std::string const & name, bool bitmask )
 {
   std::string prefix;
-  if ( name == "VkResult" )
+  if ( name == STRUCT_PREFIX "Result" )
   {
     prefix = MACRO_PREFIX "_";
   }
@@ -1120,7 +1132,7 @@ void VulkanHppGenerator::appendCommand( std::string &       str,
                                                          } ) == constPointerParamIndices.end() )
         {
           // no vector paramter and no non-void const-pointer
-          if ( commandData.returnType == "VkResult" )
+          if ( commandData.returnType == STRUCT_PREFIX "Result" )
           {
             // function returning a result but no fancy input have either standard or enhanced call
             appendCommandStandardOrEnhanced( str, name, commandData, definition );
@@ -1151,7 +1163,7 @@ void VulkanHppGenerator::appendCommand( std::string &       str,
         if ( returnVectorParamIt == vectorParamIndices.end() )
         {
           // the return parameter is not a vector -> get just one handle
-          if ( commandData.returnType == "VkResult" )
+          if ( commandData.returnType == STRUCT_PREFIX "Result" )
           {
             // provide standard, enhanced, and unique call
             appendCommandUnique( str, name, commandData, nonConstPointerParamIndices[0], definition );
@@ -1206,7 +1218,7 @@ void VulkanHppGenerator::appendCommand( std::string &       str,
         auto returnVectorParamIt = vectorParamIndices.find( nonConstPointerParamIndices[0] );
         if ( returnVectorParamIt == vectorParamIndices.end() )
         {
-          if ( ( commandData.returnType == "VkResult" ) || ( commandData.returnType == "void" ) )
+          if ( ( commandData.returnType == STRUCT_PREFIX "Result" ) || ( commandData.returnType == "void" ) )
           {
             appendCommandStandardAndEnhanced(
               str, name, commandData, definition, vectorParamIndices, nonConstPointerParamIndices );
@@ -1230,7 +1242,7 @@ void VulkanHppGenerator::appendCommand( std::string &       str,
       {
         if ( isStructureChainAnchor( commandData.params[nonConstPointerParamIndices[1]].type.type ) )
         {
-          if ( ( commandData.returnType == "VkResult" ) || ( commandData.returnType == "void" ) )
+          if ( ( commandData.returnType == STRUCT_PREFIX "Result" ) || ( commandData.returnType == "void" ) )
           {
             appendCommandVectorChained(
               str, name, commandData, definition, vectorParamIndices, nonConstPointerParamIndices );
@@ -1252,7 +1264,7 @@ void VulkanHppGenerator::appendCommand( std::string &       str,
               {
                 // the size is a return value as well -> enumerate the values
                 // and the vector data is not of type void
-                if ( ( commandData.returnType == "VkResult" ) || ( commandData.returnType == "void" ) )
+                if ( ( commandData.returnType == STRUCT_PREFIX "Result" ) || ( commandData.returnType == "void" ) )
                 {
                   // provide standard, enhanced, and vector calls
                   appendCommandVector(
@@ -1268,7 +1280,7 @@ void VulkanHppGenerator::appendCommand( std::string &       str,
               // value
               if ( ( vectorParamIndices.find( nonConstPointerParamIndices[0] ) != vectorParamIndices.end() ) &&
                    ( vectorParamIndices.find( nonConstPointerParamIndices[1] ) == vectorParamIndices.end() ) &&
-                   ( commandData.returnType == "VkResult" ) )
+                   ( commandData.returnType == STRUCT_PREFIX "Result" ) )
               {
                 // provide standard, enhanced deprecated, enhanced, and enhanced with allocator calls
                 appendCommandStandardEnhancedDeprecatedAllocator(
@@ -1340,7 +1352,7 @@ void VulkanHppGenerator::appendCommandChained( std::string &                    
                                                std::map<size_t, size_t> const & vectorParamIndices,
                                                size_t                           nonConstPointerIndex ) const
 {
-  assert( ( commandData.returnType == "VkResult" ) || ( commandData.returnType == "void" ) );
+  assert( ( commandData.returnType == STRUCT_PREFIX "Result" ) || ( commandData.returnType == "void" ) );
 
   std::string const functionTemplate = R"(
 ${enter}${commandStandard}${newlineOnDefinition}
@@ -1377,7 +1389,7 @@ void VulkanHppGenerator::appendCommandSingular( std::string &                   
                                                 std::map<size_t, size_t> const & vectorParamIndices,
                                                 size_t                           returnParamIndex ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   std::string const functionTemplate = R"(
 ${enter}${commandStandard}${newlineOnDefinition}
@@ -1453,7 +1465,7 @@ ${leave})";
       {
         commandEnhanced = constructCommandVoid( name, commandData, definition, vectorParamIndices );
       }
-      else if ( commandData.returnType == "VkResult" )
+      else if ( commandData.returnType == STRUCT_PREFIX "Result" )
       {
         switch ( vectorParamIndices.size() )
         {
@@ -1509,7 +1521,7 @@ void VulkanHppGenerator::appendCommandStandardEnhancedDeprecatedAllocator(
   assert( ( vectorParamIndices.size() == 2 ) && ( nonConstPointerParamIndices.size() == 2 ) );
   assert( vectorParamIndices.find( nonConstPointerParamIndices[0] ) != vectorParamIndices.end() );
   assert( vectorParamIndices.find( nonConstPointerParamIndices[1] ) == vectorParamIndices.end() );
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   const std::string functionTemplate = R"(
 ${enter}${commandStandard}${newlineOnDefinition}
@@ -1546,7 +1558,7 @@ void VulkanHppGenerator::appendCommandStandardOrEnhanced( std::string &       st
                                                           CommandData const & commandData,
                                                           bool                definition ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   const std::string functionTemplate = R"(
 ${enter}#ifdef )" HEADER_MACRO R"(_DISABLE_ENHANCED_MODE
@@ -1606,7 +1618,7 @@ void VulkanHppGenerator::appendCommandVector( std::string &                     
                                               std::pair<size_t, size_t> const & vectorParamIndex,
                                               std::vector<size_t> const &       returnParamIndices ) const
 {
-  assert( ( commandData.returnType == "VkResult" ) || ( commandData.returnType == "void" ) );
+  assert( ( commandData.returnType == STRUCT_PREFIX "Result" ) || ( commandData.returnType == "void" ) );
 
   std::string enter, leave;
   std::tie( enter, leave ) = generateProtection( commandData.feature, commandData.extensions );
@@ -1623,12 +1635,12 @@ ${leave})";
     replaceWithMap( functionTemplate,
                     std::map<std::string, std::string>(
                       { { "commandEnhanced",
-                          ( commandData.returnType == "VkResult" )
+                          ( commandData.returnType == STRUCT_PREFIX "Result" )
                             ? constructCommandResultEnumerate( name, commandData, definition, vectorParamIndex, false )
                             : constructCommandVoidEnumerate(
                                 name, commandData, definition, vectorParamIndex, returnParamIndices, false ) },
                         { "commandEnhancedWithAllocators",
-                          ( commandData.returnType == "VkResult" )
+                          ( commandData.returnType == STRUCT_PREFIX "Result" )
                             ? constructCommandResultEnumerate( name, commandData, definition, vectorParamIndex, true )
                             : constructCommandVoidEnumerate(
                                 name, commandData, definition, vectorParamIndex, returnParamIndices, true ) },
@@ -1645,7 +1657,7 @@ void VulkanHppGenerator::appendCommandVectorChained( std::string &              
                                                      std::map<size_t, size_t> const & vectorParamIndices,
                                                      std::vector<size_t> const &      returnParamIndices ) const
 {
-  assert( ( commandData.returnType == "VkResult" ) || ( commandData.returnType == "void" ) );
+  assert( ( commandData.returnType == STRUCT_PREFIX "Result" ) || ( commandData.returnType == "void" ) );
   assert( vectorParamIndices.size() == 1 );
 
   std::string const functionTemplate = R"(
@@ -1665,24 +1677,24 @@ ${leave})";
     functionTemplate,
     std::map<std::string, std::string>(
       { { "commandEnhanced",
-          ( commandData.returnType == "VkResult" )
+          ( commandData.returnType == STRUCT_PREFIX "Result" )
             ? constructCommandResultEnumerate( name, commandData, definition, *vectorParamIndices.begin(), false )
             : constructCommandVoidEnumerate(
                 name, commandData, definition, *vectorParamIndices.begin(), returnParamIndices, false ) },
         { "commandEnhancedChained",
-          ( commandData.returnType == "VkResult" )
+          ( commandData.returnType == STRUCT_PREFIX "Result" )
             ? constructCommandResultEnumerateChained(
                 name, commandData, definition, *vectorParamIndices.begin(), returnParamIndices, false )
             : constructCommandVoidEnumerateChained(
                 name, commandData, definition, *vectorParamIndices.begin(), returnParamIndices, false ) },
         { "commandEnhancedChainedWithAllocator",
-          ( commandData.returnType == "VkResult" )
+          ( commandData.returnType == STRUCT_PREFIX "Result" )
             ? constructCommandResultEnumerateChained(
                 name, commandData, definition, *vectorParamIndices.begin(), returnParamIndices, true )
             : constructCommandVoidEnumerateChained(
                 name, commandData, definition, *vectorParamIndices.begin(), returnParamIndices, true ) },
         { "commandEnhancedWithAllocator",
-          ( commandData.returnType == "VkResult" )
+          ( commandData.returnType == STRUCT_PREFIX "Result" )
             ? constructCommandResultEnumerate( name, commandData, definition, *vectorParamIndices.begin(), true )
             : constructCommandVoidEnumerate(
                 name, commandData, definition, *vectorParamIndices.begin(), returnParamIndices, true ) },
@@ -1699,7 +1711,7 @@ void VulkanHppGenerator::appendCommandVectorDeprecated( std::string &           
                                                         std::vector<size_t> const &      returnParamIndices,
                                                         bool                             definition ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
   assert( vectorParamIndices.size() == 2 );
 
   std::string enter, leave;
@@ -1741,7 +1753,7 @@ void VulkanHppGenerator::appendCommandVectorSingularUnique( std::string &       
                                                             size_t                           returnParamIndex,
                                                             bool                             definition ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   std::string const functionTemplate = R"(
 ${enter}${commandStandard}${newlineOnDefinition}
@@ -1793,7 +1805,7 @@ void VulkanHppGenerator::appendCommandVectorUnique( std::string &               
                                                     size_t                           returnParamIndex,
                                                     bool                             definition ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   std::string const functionTemplate = R"(
 ${enter}${commandStandard}${newlineOnDefinition}
@@ -2308,7 +2320,8 @@ void VulkanHppGenerator::appendEnums( std::string & str ) const
     str += "\n" + enter;
     appendEnum( str, e );
     appendEnumToString( str, e );
-    if ( e.first == "VkObjectType" )
+#ifdef NEEDS_OBJECT_TYPE_ENUM
+    if ( e.first == STRUCT_PREFIX "ObjectType" )
     {
       str += R"(
   template<ObjectType value>
@@ -2316,6 +2329,7 @@ void VulkanHppGenerator::appendEnums( std::string & str ) const
   {};
 )";
     }
+#endif
     str += leave;
   }
 }
@@ -2504,7 +2518,7 @@ void VulkanHppGenerator::appendFunctionBodyEnhancedTwoStep( std::string &       
                                                             std::map<size_t, size_t> const & vectorParamIndices,
                                                             std::string const &              returnName ) const
 {
-  assert( ( commandData.returnType == "VkResult" ) || ( commandData.returnType == "void" ) );
+  assert( ( commandData.returnType == STRUCT_PREFIX "Result" ) || ( commandData.returnType == "void" ) );
   assert( returnParamIndex != INVALID_INDEX );
 
   // local count variable to hold the size of the vector to fill
@@ -2547,7 +2561,7 @@ ${i}  ${returnName}.resize( ${sizeName} );
 ${i}  ${call2};
 )";
   std::string const & selectedTemplate =
-    ( commandData.returnType == "VkResult" )
+    ( commandData.returnType == STRUCT_PREFIX "Result" )
       ? ( ( 1 < commandData.successCodes.size() ) ? multiSuccessTemplate : singleSuccessTemplate )
       : voidMultiCallTemplate;
 
@@ -2743,9 +2757,15 @@ ${enter}  class ${className}
   {
   public:
     using CType = )" STRUCT_PREFIX R"(${className};
-
-    static )" HEADER_MACRO R"(_CONST_OR_CONSTEXPR )" HEADER_MACRO R"(_NAMESPACE::ObjectType objectType = )" HEADER_MACRO R"(_NAMESPACE::ObjectType::${objTypeEnum};
-    static )" HEADER_MACRO R"(_CONST_OR_CONSTEXPR )" HEADER_MACRO R"(_NAMESPACE::DebugReportObjectTypeEXT debugReportObjectType = )" HEADER_MACRO R"(_NAMESPACE::DebugReportObjectTypeEXT::${debugReportObjectType};
+)"
+#ifdef NEEDS_OBJECT_TYPE_ENUM
+R"(    static )" HEADER_MACRO R"(_CONST_OR_CONSTEXPR )" HEADER_MACRO R"(_NAMESPACE::ObjectType objectType = )" HEADER_MACRO R"(_NAMESPACE::ObjectType::${objTypeEnum};)"
+#endif
+#ifdef NEEDS_DEBUG_REPORT_OBJECT_TYPE_ENUM
+R"(
+    static )" HEADER_MACRO R"(_CONST_OR_CONSTEXPR )" HEADER_MACRO R"(_NAMESPACE::DebugReportObjectTypeEXT debugReportObjectType = )" HEADER_MACRO R"(_NAMESPACE::DebugReportObjectTypeEXT::${debugReportObjectType};)"
+#endif
+R"(
 
   public:
     )" HEADER_MACRO R"(_CONSTEXPR ${className}() )" HEADER_MACRO R"(_NOEXCEPT
@@ -2812,9 +2832,10 @@ ${commands}
     )" STRUCT_PREFIX R"(${className} m_${memberName};
   };
   static_assert( sizeof( )" HEADER_MACRO R"(_NAMESPACE::${className} ) == sizeof( )" STRUCT_PREFIX R"(${className} ), "handle and wrapper have different size!" );
-
-  template <>
-  struct )" HEADER_MACRO R"(_DEPRECATED(")" COMMAND_PREFIX R"(::cpp_type is deprecated. Use )" COMMAND_PREFIX R"(::CppType instead.") cpp_type<ObjectType::${objTypeEnum}>
+)"
+#ifdef NEEDS_OBJECT_TYPE_ENUM
+R"(template <>
+    struct )" HEADER_MACRO R"(_DEPRECATED(")" COMMAND_PREFIX R"(::cpp_type is deprecated. Use )" COMMAND_PREFIX R"(::CppType instead.") cpp_type<ObjectType::${objTypeEnum}>
   {
     using type = )" HEADER_MACRO R"(_NAMESPACE::${className};
   };
@@ -2823,9 +2844,12 @@ ${commands}
   struct CppType<)" HEADER_MACRO R"(_NAMESPACE::ObjectType, )" HEADER_MACRO R"(_NAMESPACE::ObjectType::${objTypeEnum}>
   {
     using Type = )" HEADER_MACRO R"(_NAMESPACE::${className};
-  };
-
-${CppTypeFromDebugReportObjectTypeEXT}
+  };)"
+#endif
+#if NEEDS_DEBUG_REPORT_OBJECT_TYPE_ENUM
+    "\n\n${CppTypeFromDebugReportObjectTypeEXT}"
+#endif
+R"(
 
   template <>
   struct isVulkanHandleType<)" HEADER_MACRO R"(_NAMESPACE::${className}>
@@ -2836,6 +2860,7 @@ ${CppTypeFromDebugReportObjectTypeEXT}
 
     std::string className = stripPrefix( handleData.first, STRUCT_PREFIX );
 
+#if NEEDS_DEBUG_REPORT_OBJECT_TYPE_ENUM
     auto enumIt = m_enums.find( "VkDebugReportObjectTypeEXT" );
     assert( enumIt != m_enums.end() );
     auto                     valueIt                                     = std::find_if( enumIt->second.values.begin(),
@@ -2853,27 +2878,34 @@ ${CppTypeFromDebugReportObjectTypeEXT}
                      ? replaceWithMap( cppTypeFromDebugReportObjectTypeEXTTemplate, { { "className", className } } )
                      : "";
     std::string debugReportObjectType = ( valueIt != enumIt->second.values.end() ) ? valueIt->vkValue : "eUnknown";
-
+#endif
     std::string enter, leave;
     std::tie( enter, leave ) = generateProtection( handleData.first, !handleData.second.alias.empty() );
 
+#ifdef NEEDS_OBJECT_TYPE_ENUM
     assert( !handleData.second.objTypeEnum.empty() );
-    enumIt = m_enums.find( "VkObjectType" );
+    enumIt = m_enums.find( STRUCT_PREFIX "ObjectType" );
     assert( enumIt != m_enums.end() );
     valueIt = std::find_if(
       enumIt->second.values.begin(), enumIt->second.values.end(), [&handleData]( EnumValueData const & evd ) {
         return evd.vulkanValue == handleData.second.objTypeEnum;
       } );
     assert( valueIt != enumIt->second.values.end() );
+#endif
 
     str += replaceWithMap( templateString,
                            { { "className", className },
                              { "commands", commands },
+#if NEEDS_DEBUG_REPORT_OBJECT_TYPE_ENUM
                              { "CppTypeFromDebugReportObjectTypeEXT", cppTypeFromDebugReportObjectTypeEXT },
                              { "debugReportObjectType", debugReportObjectType },
+#endif
                              { "enter", enter },
                              { "memberName", startLowerCase( stripPrefix( handleData.first, STRUCT_PREFIX ) ) },
-                             { "objTypeEnum", valueIt->vkValue } } );
+#ifdef NEEDS_OBJECT_TYPE_ENUM
+                             { "objTypeEnum", valueIt->vkValue }
+#endif
+                           } );
 
     if ( !handleData.second.alias.empty() )
     {
@@ -3051,7 +3083,7 @@ void VulkanHppGenerator::appendResultExceptions( std::string & str ) const
   };
 )";
 
-  auto enumData = m_enums.find( "VkResult" );
+  auto enumData = m_enums.find( STRUCT_PREFIX "Result" );
   for ( auto const & value : enumData->second.values )
   {
     if ( beginsWith( value.vkValue, "eError" ) )
@@ -3575,7 +3607,7 @@ std::string VulkanHppGenerator::constructCommandResult( std::string const &     
                                                         bool                             definition,
                                                         std::map<size_t, size_t> const & vectorParamIndices ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   std::set<size_t> skippedParameters =
     determineSkippedParams( commandData.handle, commandData.params, vectorParamIndices, {}, false );
@@ -3632,7 +3664,7 @@ std::string VulkanHppGenerator::constructCommandResultEnumerate( std::string con
                                                                  std::pair<size_t, size_t> const & vectorParamIndices,
                                                                  bool                              withAllocator ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
   assert( ( commandData.successCodes.size() == 2 ) && ( commandData.successCodes[0] == MACRO_PREFIX "_SUCCESS" ) &&
           ( commandData.successCodes[1] == MACRO_PREFIX "_INCOMPLETE" ) );
 
@@ -3739,7 +3771,7 @@ std::string
                                                               std::vector<size_t> const &       returnParamIndices,
                                                               bool                              withAllocator ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
   assert( ( commandData.successCodes.size() == 2 ) && ( commandData.successCodes[0] == MACRO_PREFIX "_SUCCESS" ) &&
           ( commandData.successCodes[1] == MACRO_PREFIX "_INCOMPLETE" ) );
 
@@ -3851,7 +3883,7 @@ std::string
                                                                  std::vector<size_t> const &      returnParamIndices,
                                                                  bool                             withAllocators ) const
 {
-  assert( !commandData.handle.empty() && ( commandData.returnType == "VkResult" ) );
+  assert( !commandData.handle.empty() && ( commandData.returnType == STRUCT_PREFIX "Result" ) );
   assert( ( commandData.successCodes.size() == 2 ) && ( commandData.successCodes[0] == MACRO_PREFIX "_SUCCESS" ) &&
           ( commandData.successCodes[1] == MACRO_PREFIX "_INCOMPLETE" ) );
 
@@ -4049,7 +4081,7 @@ std::string VulkanHppGenerator::constructCommandResultGetChain( std::string cons
                                                                 bool                definition,
                                                                 size_t              nonConstPointerIndex ) const
 {
-  assert( !commandData.handle.empty() && ( commandData.returnType == "VkResult" ) && !commandData.errorCodes.empty() );
+  assert( !commandData.handle.empty() && ( commandData.returnType == STRUCT_PREFIX "Result" ) && !commandData.errorCodes.empty() );
 
   std::set<size_t> skippedParams =
     determineSkippedParams( commandData.handle, commandData.params, {}, { nonConstPointerIndex }, false );
@@ -4108,7 +4140,7 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
                                                                        bool                definition,
                                                                        size_t              nonConstPointerIndex ) const
 {
-  assert( ( commandData.returnType == "VkResult" ) && ( commandData.successCodes.size() == 1 ) );
+  assert( ( commandData.returnType == STRUCT_PREFIX "Result" ) && ( commandData.successCodes.size() == 1 ) );
 
   std::set<size_t> skippedParams =
     determineSkippedParams( commandData.handle, commandData.params, {}, { nonConstPointerIndex }, false );
@@ -4219,7 +4251,7 @@ std::string
                                                            bool                             definition,
                                                            std::map<size_t, size_t> const & vectorParamIndices ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   auto firstVectorParamIt = vectorParamIndices.begin();
 
@@ -4288,7 +4320,7 @@ std::string VulkanHppGenerator::constructCommandResultGetValue( std::string cons
                                                                 bool                definition,
                                                                 size_t              nonConstPointerIndex ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   std::set<size_t> skippedParams =
     determineSkippedParams( commandData.handle, commandData.params, {}, { nonConstPointerIndex }, false );
@@ -4355,7 +4387,7 @@ std::string
                                                                 std::map<size_t, size_t> const & vectorParamIndices,
                                                                 size_t returnParamIndex ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
   assert( ( vectorParamIndices.find( returnParamIndex ) == vectorParamIndices.end() ) );
 
   std::string argumentList = constructFunctionHeaderArgumentsEnhanced(
@@ -4412,7 +4444,7 @@ std::string VulkanHppGenerator::constructCommandResultGetVector( std::string con
                                                                  std::map<size_t, size_t> const & vectorParamIndices,
                                                                  size_t returnParamIndex ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   std::set<size_t> skippedParams =
     determineSkippedParams( commandData.handle, commandData.params, vectorParamIndices, { returnParamIndex }, false );
@@ -4478,12 +4510,12 @@ std::string
                                                                std::vector<size_t> const &      returnParamIndices,
                                                                bool                             withAllocator ) const
 {
-  assert( !commandData.handle.empty() && ( commandData.returnType == "VkResult" ) );
+  assert( !commandData.handle.empty() && ( commandData.returnType == STRUCT_PREFIX "Result" ) );
   assert( ( vectorParamIndices.size() == 2 ) && ( returnParamIndices.size() == 2 ) );
   assert( vectorParamIndices.find( returnParamIndices[0] ) != vectorParamIndices.end() );
   assert( vectorParamIndices.find( returnParamIndices[1] ) == vectorParamIndices.end() );
   assert( vectorParamIndices.begin()->second == std::next( vectorParamIndices.begin() )->second );
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   std::set<size_t> skippedParameters =
     determineSkippedParams( commandData.handle, commandData.params, vectorParamIndices, returnParamIndices, false );
@@ -4575,7 +4607,7 @@ std::string
                                                                  std::map<size_t, size_t> const & vectorParamIndices,
                                                                  size_t returnParamIndex ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   std::string argumentList = constructFunctionHeaderArgumentsEnhanced(
     commandData, INVALID_INDEX, returnParamIndex, vectorParamIndices, !definition, false );
@@ -4633,7 +4665,7 @@ std::string
                                                                 size_t                           returnParamIndex,
                                                                 bool                             withAllocator ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   std::set<size_t> skippedParams =
     determineSkippedParams( commandData.handle, commandData.params, vectorParamIndices, { returnParamIndex }, false );
@@ -4790,7 +4822,7 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
   size_t                           returnParamIndex,
   bool                             withAllocator ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   std::set<size_t> skippedParams =
     determineSkippedParams( commandData.handle, commandData.params, vectorParamIndices, { returnParamIndex }, false );
@@ -5039,7 +5071,7 @@ std::string
                                                                std::map<size_t, size_t> const & vectorParamIndices,
                                                                size_t                           returnParamIndex ) const
 {
-  assert( commandData.returnType == "VkResult" );
+  assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
   std::set<size_t> skippedParams =
     determineSkippedParams( commandData.handle, commandData.params, vectorParamIndices, { returnParamIndex }, true );
@@ -5163,7 +5195,7 @@ std::string VulkanHppGenerator::constructCommandType( std::string const & name,
                                                       CommandData const & commandData,
                                                       bool                definition ) const
 {
-  assert( ( commandData.returnType != "VkResult" ) && ( commandData.returnType != "void" ) &&
+  assert( ( commandData.returnType != STRUCT_PREFIX "Result" ) && ( commandData.returnType != "void" ) &&
           commandData.successCodes.empty() && commandData.errorCodes.empty() );
 
   std::set<size_t> skippedParameters = determineSkippedParams( commandData.handle, commandData.params, {}, {}, false );
@@ -5660,7 +5692,7 @@ std::string VulkanHppGenerator::constructFunctionBodyEnhanced( std::string const
       indentation, name, commandData, returnParamIndex, templateParamIndex, vectorParamIndices );
   }
 
-  if ( ( commandData.returnType == "VkResult" ) || !commandData.successCodes.empty() )
+  if ( ( commandData.returnType == STRUCT_PREFIX "Result" ) || !commandData.successCodes.empty() )
   {
     appendFunctionBodyEnhancedReturnResultValue(
       str, indentation, returnName, name, commandData, returnParamIndex, twoStep );
@@ -5678,12 +5710,12 @@ std::string VulkanHppGenerator::constructFunctionBodyEnhancedSingleStep(
 {
   std::string str;
   str += indentation + "  ";
-  if ( commandData.returnType == "VkResult" )
+  if ( commandData.returnType == STRUCT_PREFIX "Result" )
   {
     str += "Result result = static_cast<Result>( ";
   }
   appendCall( str, name, commandData, returnParamIndex, templateParamIndex, vectorParamIndices, false, true );
-  if ( commandData.returnType == "VkResult" )
+  if ( commandData.returnType == STRUCT_PREFIX "Result" )
   {
     str += " )";
   }
@@ -6139,7 +6171,7 @@ void VulkanHppGenerator::appendStructSetter( std::string &                   str
                                              size_t                          index ) const
 {
   MemberData const & member = memberData[index];
-  if ( member.type.type != "VkStructureType" )  // filter out StructureType, which is supposed to be immutable !
+  if ( member.type.type != STRUCT_PREFIX "StructureType" )  // filter out StructureType, which is supposed to be immutable !
   {
     static const std::string templateString = R"(
     ${structureName} & set${MemberName}( ${memberType} ${reference}${memberName}_ ) )" HEADER_MACRO R"(_NOEXCEPT
@@ -6319,7 +6351,11 @@ void VulkanHppGenerator::appendStructure( std::string &                         
   static const std::string structureTemplate = R"(  struct ${structureName}
   {
 ${allowDuplicate}
-${structureType}
+)"
+#if NEEDS_STRUCTURE_TYPE_ENUM
+    "${structureType}"
+#endif
+R"(
 ${constructorAndSetters}
 
     operator ${vkName} const&() const )" HEADER_MACRO R"(_NOEXCEPT
@@ -6341,23 +6377,31 @@ ${members}
 )";
 
   std::string structureName = stripPrefix( structure.first, STRUCT_PREFIX );
-  std::string allowDuplicate, structureType;
+  std::string allowDuplicate;
+#ifdef NEEDS_STRUCTURE_TYPE_ENUM
+  std::string structureType;
+#endif
   if ( !sTypeValue.empty() )
   {
     allowDuplicate = std::string( "    static const bool allowDuplicate = " ) +
                      ( structure.second.allowDuplicate ? "true;" : "false;" );
+#ifdef NEEDS_STRUCTURE_TYPE_ENUM
     structureType =
       "    static " HEADER_MACRO "_CONST_OR_CONSTEXPR StructureType structureType = StructureType::" + sTypeValue + ";\n";
+#endif
   }
   str += replaceWithMap( structureTemplate,
                          { { "allowDuplicate", allowDuplicate },
                            { "structureName", structureName },
+#ifdef NEEDS_STRUCTURE_TYPE_ENUM
                            { "structureType", structureType },
+#endif
                            { "constructorAndSetters", constructorAndSetters },
                            { "vkName", structure.first },
                            { "compareOperators", compareOperators },
                            { "members", members } } );
 
+#ifdef NEEDS_STRUCTURE_TYPE_ENUM
   if ( !sTypeValue.empty() )
   {
     std::string cppTypeTemplate = R"(
@@ -6369,6 +6413,7 @@ ${members}
 )";
     str += replaceWithMap( cppTypeTemplate, { { "sTypeValue", sTypeValue }, { "structureName", structureName } } );
   }
+#endif
 
   for ( std::string const & alias : structure.second.aliases )
   {
@@ -6443,7 +6488,7 @@ void VulkanHppGenerator::appendStructureChainValidation( std::string & str )
 
 void VulkanHppGenerator::appendThrowExceptions( std::string & str ) const
 {
-  auto enumData = m_enums.find( "VkResult" );
+  auto enumData = m_enums.find( STRUCT_PREFIX "Result" );
 
   str +=
     "\n"
@@ -6772,7 +6817,7 @@ void VulkanHppGenerator::checkCorrectness()
   }
 
   // prepare command checks
-  auto resultIt = m_enums.find( "VkResult" );
+  auto resultIt = m_enums.find( STRUCT_PREFIX "Result" );
   assert( resultIt != m_enums.end() );
   std::set<std::string> resultCodes;
   for ( auto rc : resultIt->second.values )
@@ -6800,7 +6845,7 @@ void VulkanHppGenerator::checkCorrectness()
              "command uses unknown success code <" + sc + ">" );
     }
     // check that functions returning a <STRUCT_PREFIX>Result specify successcodes
-    check( ( command.second.returnType != "VkResult" ) || !command.second.successCodes.empty(),
+    check( ( command.second.returnType != STRUCT_PREFIX "Result" ) || !command.second.successCodes.empty(),
            command.second.xmlLine,
            "missing successcodes on command <" + command.first + "> returning " STRUCT_PREFIX "Result!" );
 
@@ -6859,8 +6904,10 @@ void VulkanHppGenerator::checkCorrectness()
   }
 
   // handle checks
-  auto objectTypeIt = m_enums.find( "VkObjectType" );
+#ifdef NEEDS_OBJECT_TYPE_ENUM
+  auto objectTypeIt = m_enums.find( STRUCT_PREFIX "ObjectType" );
   assert( objectTypeIt != m_enums.end() );
+#endif
   for ( auto const & handle : m_handles )
   {
     for ( auto const & parent : handle.second.parents )
@@ -6870,6 +6917,7 @@ void VulkanHppGenerator::checkCorrectness()
              "handle <" + handle.first + "> with unknown parent <" + parent + ">" );
     }
 
+#ifdef NEEDS_OBJECT_TYPE_ENUM
     if ( !handle.first.empty() )
     {
       assert( !handle.second.objTypeEnum.empty() );
@@ -6881,7 +6929,9 @@ void VulkanHppGenerator::checkCorrectness()
               handle.second.xmlLine,
               "handle <" + handle.first + "> specifies unknown \"objtypeenum\" <" + handle.second.objTypeEnum + ">" );
     }
+#endif
   }
+#ifdef NEEDS_OBJECT_TYPE_ENUM
   for ( auto const & objectTypeValue : objectTypeIt->second.values )
   {
     if ( objectTypeValue.vkValue != "eUnknown" )
@@ -6896,6 +6946,7 @@ void VulkanHppGenerator::checkCorrectness()
               "> not specified as \"objtypeenum\" for any handle" );
     }
   }
+#endif
 
   // structure checks
   std::set<std::string> sTypeValues;
@@ -6988,9 +7039,10 @@ void VulkanHppGenerator::checkCorrectness()
     }
   }
 
+#ifdef NEEDS_STRUCTURE_TYPE_ENUM
   // enum checks
   // enum <STRUCT_PREFIX>StructureType checks (need to be after structure checks)
-  auto structureTypeIt = m_enums.find( "VkStructureType" );
+  auto structureTypeIt = m_enums.find( STRUCT_PREFIX "StructureType" );
   assert( structureTypeIt != m_enums.end() );
   for ( auto const & enumValue : structureTypeIt->second.values )
   {
@@ -7009,6 +7061,7 @@ void VulkanHppGenerator::checkCorrectness()
     }
   }
   assert( sTypeValues.empty() );
+#endif
 }
 
 bool VulkanHppGenerator::containsArray( std::string const & type ) const
@@ -7065,9 +7118,9 @@ std::string VulkanHppGenerator::determineEnhancedReturnType( CommandData const &
 
   std::string enhancedReturnType;
   assert( returnParamIndex != INVALID_INDEX );
-  // if there is a return parameter, we think returnType is always "void" or "VkResult"
+  // if there is a return parameter, we think returnType is always "void" or STRUCT_PREFIX "Result"
   // -> we can return that parameter
-  assert( ( commandData.returnType == "void" ) || ( commandData.returnType == "VkResult" ) );
+  assert( ( commandData.returnType == "void" ) || ( commandData.returnType == STRUCT_PREFIX "Result" ) );
   assert( commandData.successCodes.empty() || ( commandData.successCodes[0] == MACRO_PREFIX "_SUCCESS" ) );
   return ( commandData.params[returnParamIndex].type.type == "void" )
            ? "std::vector<uint8_t,Allocator>"  // the return parameter is a vector-type parameter
@@ -7096,7 +7149,7 @@ size_t VulkanHppGenerator::determineReturnParamIndex( CommandData const &       
 
   size_t returnParamIndex = INVALID_INDEX;
   // for return types of type <STRUCT_PREFIX>Result or void, we can determine a parameter to return
-  if ( ( commandData.returnType == "VkResult" ) || ( commandData.returnType == "void" ) )
+  if ( ( commandData.returnType == STRUCT_PREFIX "Result" ) || ( commandData.returnType == "void" ) )
   {
     size_t index = commandData.params.size() - 1;
     if ( ( commandData.params[index].type.postfix.find( '*' ) != std::string::npos ) &&
@@ -7236,7 +7289,8 @@ std::map<size_t, size_t>
 
 void VulkanHppGenerator::appendIndexTypeTraits( std::string & str ) const
 {
-  auto indexType = m_enums.find( "VkIndexType" );
+#ifdef NEEDS_INDEX_TYPE_TRAITS
+  auto indexType = m_enums.find( STRUCT_MACRO "IndexType" );
   assert( indexType != m_enums.end() );
 
   str += R"(
@@ -7303,6 +7357,9 @@ void VulkanHppGenerator::appendIndexTypeTraits( std::string & str ) const
         "  };\n";
     }
   }
+#else
+    static_cast<void>(str);
+#endif
 }
 
 std::string const & VulkanHppGenerator::getTypesafeCheck() const
@@ -11907,8 +11964,8 @@ namespace std
   };
 )";
 
-  try
-  {
+  //try
+  //{
     tinyxml2::XMLDocument doc;
 
     std::string filename = ( argc == 1 ) ? INPUT_FILENAME : argv[1];
@@ -11986,15 +12043,15 @@ namespace std
     std::cout
       << "VulkanHppGenerator: could not find clang-format. The generated hpp file will not be formatted accordingly.\n";
 #endif
-  }
-  catch ( std::exception const & e )
-  {
-    std::cout << "caught exception: " << e.what() << std::endl;
-    return -1;
-  }
-  catch ( ... )
-  {
-    std::cout << "caught unknown exception" << std::endl;
-    return -1;
-  }
+  //}
+  //catch ( std::exception const & e )
+  //{
+  //  std::cout << "caught exception: " << e.what() << std::endl;
+  //  return -1;
+  //}
+  //catch ( ... )
+  //{
+  //  std::cout << "caught unknown exception" << std::endl;
+  //  return -1;
+  //}
 }
