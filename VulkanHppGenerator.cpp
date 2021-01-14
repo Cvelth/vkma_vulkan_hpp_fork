@@ -11964,8 +11964,8 @@ namespace std
   };
 )";
 
-  //try
-  //{
+  try
+  {
     tinyxml2::XMLDocument doc;
 
     std::string filename = ( argc == 1 ) ? INPUT_FILENAME : argv[1];
@@ -12043,15 +12043,15 @@ namespace std
     std::cout
       << "VulkanHppGenerator: could not find clang-format. The generated hpp file will not be formatted accordingly.\n";
 #endif
-  //}
-  //catch ( std::exception const & e )
-  //{
-  //  std::cout << "caught exception: " << e.what() << std::endl;
-  //  return -1;
-  //}
-  //catch ( ... )
-  //{
-  //  std::cout << "caught unknown exception" << std::endl;
-  //  return -1;
-  //}
+  }
+  catch ( std::exception const & e )
+  {
+    std::cout << "caught exception: " << e.what() << std::endl;
+    return -1;
+  }
+  catch ( ... )
+  {
+    std::cout << "caught unknown exception" << std::endl;
+    return -1;
+  }
 }
