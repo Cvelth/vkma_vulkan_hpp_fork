@@ -1083,7 +1083,11 @@ void VulkanHppGenerator::appendCall( std::string &                    str,
                                      bool                             firstCall ) const
 {
   // the original function call
+#if NEEDS_DISPATCH
   str += "d." + name + "( ";
+#else
+    str += name + "( ";
+#endif
 
   if ( !commandData.handle.empty() )
   {
@@ -1341,8 +1345,7 @@ void VulkanHppGenerator::appendCommand( std::string &       str,
     return;
   }
 
-  //throw std::runtime_error( "Never encountered a function like " + name + " !" );
-  std::cout << "Never encountered a function like " + name + " !\n";
+  throw std::runtime_error( "Never encountered a function like " + name + " !" );
 }
 
 void VulkanHppGenerator::appendCommandChained( std::string &                    str,
@@ -2759,7 +2762,8 @@ ${enter}  class ${className}
     using CType = )" STRUCT_PREFIX R"(${className};
 )"
 #ifdef NEEDS_OBJECT_TYPE_ENUM
-R"(    static )" HEADER_MACRO R"(_CONST_OR_CONSTEXPR )" HEADER_MACRO R"(_NAMESPACE::ObjectType objectType = )" HEADER_MACRO R"(_NAMESPACE::ObjectType::${objTypeEnum};)"
+R"(
+    static )" HEADER_MACRO R"(_CONST_OR_CONSTEXPR )" HEADER_MACRO R"(_NAMESPACE::ObjectType objectType = )" HEADER_MACRO R"(_NAMESPACE::ObjectType::${objTypeEnum};)"
 #endif
 #ifdef NEEDS_DEBUG_REPORT_OBJECT_TYPE_ENUM
 R"(
@@ -2834,8 +2838,9 @@ ${commands}
   static_assert( sizeof( )" HEADER_MACRO R"(_NAMESPACE::${className} ) == sizeof( )" STRUCT_PREFIX R"(${className} ), "handle and wrapper have different size!" );
 )"
 #ifdef NEEDS_OBJECT_TYPE_ENUM
-R"(template <>
-    struct )" HEADER_MACRO R"(_DEPRECATED(")" COMMAND_PREFIX R"(::cpp_type is deprecated. Use )" COMMAND_PREFIX R"(::CppType instead.") cpp_type<ObjectType::${objTypeEnum}>
+R"(
+  template <>
+  struct )" HEADER_MACRO R"(_DEPRECATED(")" COMMAND_PREFIX R"(::cpp_type is deprecated. Use )" COMMAND_PREFIX R"(::CppType instead.") cpp_type<ObjectType::${objTypeEnum}>
   {
     using type = )" HEADER_MACRO R"(_NAMESPACE::${className};
   };
@@ -3626,7 +3631,11 @@ std::string VulkanHppGenerator::constructCommandResult( std::string const &     
 #endif
       R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
-    Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
+    Result result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+      "d."
+#endif
+      R"(${vkCommand}( ${callArguments} ) );
     return createResultValue( result, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
@@ -3697,11 +3706,19 @@ std::string VulkanHppGenerator::constructCommandResultEnumerate( std::string con
     Result result;
     do
     {
-      result = static_cast<Result>( d.${vkCommand}( ${firstCallArguments} ) );
+      result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+      "d."
+#endif
+      R"(${vkCommand}( ${firstCallArguments} ) );
       if ( ( result == Result::eSuccess ) && ${counterName} )
       {
         ${vectorName}.resize( ${counterName} );
-        result = static_cast<Result>( d.${vkCommand}( ${secondCallArguments} ) );
+        result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+      "d."
+#endif
+      R"(${vkCommand}( ${secondCallArguments} ) );
         )" HEADER_MACRO R"(_ASSERT( ${counterName} <= ${vectorName}.size() );
       }
     } while ( result == Result::eIncomplete );
@@ -3802,7 +3819,11 @@ std::string
     Result result;
     do
     {
-      result = static_cast<Result>( d.${vkCommand}( ${firstCallArguments} ) );
+      result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+      "d."
+#endif
+      R"(${vkCommand}( ${firstCallArguments} ) );
       if ( ( result == Result::eSuccess ) && ${counterName} )
       {
         returnVector.resize( ${counterName} );
@@ -3812,7 +3833,11 @@ std::string
           ${vectorName}[i].pNext =
             returnVector[i].template get<${vectorElementType}>().pNext;
         }
-        result = static_cast<Result>( d.${vkCommand}( ${secondCallArguments} ) );
+        result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${secondCallArguments} ) );
         )" HEADER_MACRO R"(_ASSERT( ${counterName} <= ${vectorName}.size() );
       }
     } while ( result == Result::eIncomplete );
@@ -3919,12 +3944,20 @@ std::string
     Result result;
     do
     {
-      result = static_cast<Result>( d.${vkCommand}( ${firstCallArguments} ) );
+      result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${firstCallArguments} ) );
       if ( ( result == Result::eSuccess ) && counterCount )
       {
         ${firstVectorName}.resize( ${counterName} );
         ${secondVectorName}.resize( ${counterName} );
-        result = static_cast<Result>( d.${vkCommand}( ${secondCallArguments} ) );
+        result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${secondCallArguments} ) );
         )" HEADER_MACRO R"(_ASSERT( ${counterName} <= ${firstVectorName}.size() );
       }
     } while ( result == Result::eIncomplete );
@@ -4105,7 +4138,11 @@ std::string VulkanHppGenerator::constructCommandResultGetChain( std::string cons
   {
     StructureChain<X, Y, Z...> structureChain;
     ${returnType} & ${returnVariable} = structureChain.template get<${returnType}>();
-    Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
+    Result result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${callArguments} ) );
     return createResultValue( result, structureChain, )" HEADER_MACRO R"(_NAMESPACE_STRING"::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
@@ -4166,12 +4203,16 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
       R"(>>::type ${className}${classSeparator}${commandName}Unique( ${argumentList} )${const}
   {
     ${returnBaseType} ${returnValueName};
-    Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
+    Result result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${callArguments} ) );
     ${ObjectDeleter}<${parentName})"
 #ifdef NEEDS_DISPATCH
       ", Dispatch"
 #endif
-      R"(> deleter( ${this}${allocator}d );
+      R"(> deleter( ${deleterParameters} );
     return createResultValue<${returnBaseType})"
 #ifdef NEEDS_DISPATCH
       ", Dispatch"
@@ -4195,7 +4236,7 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
     else if ( name.find( "Allocate" ) != std::string::npos )
     {
       objectDeleter = "ObjectFree";
-      allocator     = "allocator, ";
+      allocator     = "allocator";
     }
     else
     {
@@ -4203,21 +4244,33 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
       assert( ( name.find( "Create" ) != std::string::npos ) || ( name == COMMAND_PREFIX "RegisterDeviceEventEXT" ) ||
               ( name == COMMAND_PREFIX "RegisterDisplayEventEXT" ) );
       objectDeleter = "ObjectDestroy";
-      allocator     = "allocator, ";
+      allocator     = "allocator";
     }
     std::string className = commandData.handle.empty() ? "" : stripPrefix( commandData.handle, STRUCT_PREFIX );
     std::string parentName =
       ( className.empty() || ( commandData.params[nonConstPointerIndex].type.type == STRUCT_PREFIX "Device" ) ) ? "NoParent"
                                                                                                     : className;
+    std::string deleterParameters = ( parentName == "NoParent" ) ? "" : "*this";
+    if ( !allocator.empty() )
+      if ( deleterParameters.empty() )
+        deleterParameters = allocator;
+      else
+        ( deleterParameters += ", " ) += allocator;
+#ifdef NEEDS_DISPATCH
+    if ( deleterParameters.empty() )
+      deleterParameters = "d";
+    else
+      ( deleterParameters += ", " ) += "d";
+#endif
 
     return replaceWithMap(
       functionTemplate,
-      { { "allocator", allocator },
-        { "argumentList", argumentList },
+      { { "argumentList", argumentList },
         { "callArguments",
           constructCallArgumentsEnhanced( commandData.handle, commandData.params, false, INVALID_INDEX ) },
         { "className", className },
         { "classSeparator", className.empty() ? "" : "::" },
+        { "deleterParameters", deleterParameters },
         { "commandName", commandName },
         { "const", commandData.handle.empty() ? "" : " const" },
         { "nodiscard", nodiscard },
@@ -4225,7 +4278,6 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
         { "parentName", parentName },
         { "returnBaseType", returnBaseType },
         { "returnValueName", startLowerCase( stripPrefix( commandData.params[nonConstPointerIndex].name, "p" ) ) },
-        { "this", ( parentName == "NoParent" ) ? "" : "*this, " },
         { "vkCommand", name } } );
   }
   else
@@ -4279,7 +4331,11 @@ std::string
 #endif
       "  " HEADER_MACRO R"(_INLINE Result ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
   {${vectorSizeCheck}
-    Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
+    Result result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${callArguments} ) );
     return createResultValue( result, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
@@ -4302,7 +4358,7 @@ std::string
   {
     const std::string functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)>)" "\n"
+      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)" "\n"
 #endif
       R"(    Result ${commandName}( ${argumentList} ) const ${noexcept};)";
 
@@ -4343,7 +4399,11 @@ std::string VulkanHppGenerator::constructCommandResultGetValue( std::string cons
       R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} )${const}
   {
     ${returnBaseType} ${returnValueName};
-    Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
+    Result result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${callArguments} ) );
     return createResultValue( result, ${returnValueName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
@@ -4466,7 +4526,11 @@ std::string VulkanHppGenerator::constructCommandResultGetVector( std::string con
   {
     )" HEADER_MACRO R"(_ASSERT( ${dataSize} % sizeof( T ) == 0 );
     std::vector<T,Allocator> ${dataName}( ${dataSize} / sizeof( T ) );
-    Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
+    Result result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${callArguments} ) );
     return createResultValue( result, ${dataName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
@@ -4544,7 +4608,11 @@ std::string
     std::pair<std::vector<${vectorElementType}, ${allocatorType}>,${valueType}> data( std::piecewise_construct, std::forward_as_tuple( ${vectorSize}${allocateInitializer} ), std::forward_as_tuple( 0 ) );
     std::vector<${vectorElementType}, ${allocatorType}> & ${vectorName} = data.first;
     ${valueType} & ${valueName} = data.second;
-    Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
+    Result result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${callArguments} ) );
     return createResultValue( result, data, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
@@ -4690,7 +4758,11 @@ std::string
       "${typenameCheck}>\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     std::vector<${handleType}, ${handleType}Allocator> ${vectorName}( ${vectorSize}${vectorAllocator} );
-    Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
+    Result result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${callArguments} ) );
     return createResultValue( result, ${vectorName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
@@ -4778,7 +4850,11 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesSingular
       R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     ${handleType} ${handleName};
-    Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
+    Result result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${callArguments} ) );
     return createResultValue( result, ${handleName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
@@ -4861,7 +4937,11 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
 #endif
       R"(>, ${handleType}Allocator> ${uniqueVectorName}${vectorAllocator};
     std::vector<${handleType}> ${vectorName}( ${vectorSize} );
-    Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
+    Result result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${callArguments} ) );
     if ( ${successCheck} )
     {
       ${uniqueVectorName}.reserve( ${vectorSize} );
@@ -4888,7 +4968,11 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
 #ifdef NEEDS_DISPATCH
         ", Dispatch" +
 #endif
-        "> deleter( *this, allocator, d )"; break;
+        "> deleter( *this, allocator"
+#ifdef NEEDS_DISPATCH
+        ", d"
+#endif
+        " )"; break;
       case 2:
       {
         auto vpiIt = vectorParamIndices.find( returnParamIndex );
@@ -4904,7 +4988,11 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
 #ifdef NEEDS_DISPATCH
           ", Dispatch" +
 #endif
-          "> deleter( *this, " + poolName + ", d )";
+          "> deleter( *this, " + poolName +
+#ifdef NEEDS_DISPATCH
+          ", d"
+#endif
+          " )";
       }
       break;
     }
@@ -5017,12 +5105,20 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUniqueSi
       R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}Unique( ${argumentList} ) const
   {
     ${handleType} ${handleName};
-    Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
+    Result result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${callArguments} ) );
     ObjectDestroy<${className})"
 #ifdef NEEDS_DISPATCH
       ", Dispatch"
 #endif
-      R"(> deleter( *this, allocator, d );
+      R"(> deleter( *this, allocator)"
+#ifdef NEEDS_DISPATCH
+        ", d"
+#endif
+        R"( );
     return createResultValue<${handleType})"
 #ifdef NEEDS_DISPATCH
       ", Dispatch"
@@ -5092,7 +5188,11 @@ std::string
       ">\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     T ${dataName};
-    Result result = static_cast<Result>( d.${vkCommand}( ${callArguments} ) );
+    Result result = static_cast<Result>( )"
+#ifdef NEEDS_DISPATCH
+        "d."
+#endif
+        R"(${vkCommand}( ${callArguments} ) );
     return createResultValue( result, ${dataName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
@@ -5141,7 +5241,11 @@ std::string VulkanHppGenerator::constructCommandStandard( std::string const & na
   if ( definition )
   {
     std::string functionBody =
-      "d." + name + "( " + constructCallArgumentsStandard( commandData.handle, commandData.params ) + " )";
+#ifdef NEEDS_DISPATCH
+      "d." +
+#endif
+      name + "( " + constructCallArgumentsStandard( commandData.handle, commandData.params ) + " )";
+
     if ( beginsWith( commandData.returnType, STRUCT_PREFIX ) )
     {
       functionBody = "return static_cast<" + returnType + ">( " + functionBody + " )";
@@ -5214,7 +5318,11 @@ std::string VulkanHppGenerator::constructCommandType( std::string const & name,
 #endif
       R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT
   {
-    return d.${vkCommand}( ${callArguments} );
+    return )"
+#ifdef NEEDS_DISPATCH
+      "d."
+#endif
+      R"(${vkCommand}( ${callArguments} );
   })";
 
     return replaceWithMap(
@@ -5273,7 +5381,11 @@ std::string VulkanHppGenerator::constructCommandVoid( std::string const &       
 #endif
       ">\n  " HEADER_MACRO R"(_INLINE void ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
   {${vectorSizeCheck}
-    d.${vkCommand}( ${callArguments} );
+    )"
+#ifdef NEEDS_DISPATCH
+      "d."
+#endif
+      R"(${vkCommand}( ${callArguments} );
   })";
 
     return replaceWithMap(
@@ -5337,9 +5449,17 @@ std::string VulkanHppGenerator::constructCommandVoidEnumerate( std::string const
   {
     std::vector<${vectorElementType}, ${vectorElementType}Allocator> ${vectorName}${vectorAllocator};
     ${counterType} ${counterName};
-    d.${vkCommand}( ${firstCallArguments} );
+    )"
+#ifdef NEEDS_DISPATCH
+      "d."
+#endif
+      R"(${vkCommand}( ${firstCallArguments} );
     ${vectorName}.resize( ${counterName} );
-    d.${vkCommand}( ${secondCallArguments} );
+    )"
+#ifdef NEEDS_DISPATCH
+      "d."
+#endif
+      R"(${vkCommand}( ${secondCallArguments} );
     )" HEADER_MACRO R"(_ASSERT( ${counterName} <= ${vectorName}.size() );
     return ${vectorName};
   })";
@@ -5426,7 +5546,11 @@ std::string
       "${typenameCheck}>\n  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE std::vector<StructureChain, StructureChainAllocator> ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     ${counterType} ${counterName};
-    d.${vkCommand}( ${firstCallArguments} );
+    )"
+#ifdef NEEDS_DISPATCH
+      "d."
+#endif
+      R"(${vkCommand}( ${firstCallArguments} );
     std::vector<StructureChain, StructureChainAllocator> returnVector( ${counterName}${structureChainAllocator} );
     std::vector<${vectorElementType}> ${vectorName}( ${counterName} );
     for ( ${counterType} i = 0; i < ${counterName}; i++ )
@@ -5434,7 +5558,11 @@ std::string
       ${vectorName}[i].pNext =
         returnVector[i].template get<${vectorElementType}>().pNext;
     }
-    d.${vkCommand}( ${secondCallArguments} );
+    )"
+#ifdef NEEDS_DISPATCH
+      "d."
+#endif
+      R"(${vkCommand}( ${secondCallArguments} );
     )" HEADER_MACRO R"(_ASSERT( ${counterName} <= ${vectorName}.size() );
     for ( ${counterType} i = 0; i < ${counterName}; i++ )
     {
@@ -5516,7 +5644,11 @@ std::string VulkanHppGenerator::constructCommandVoidGetChain( std::string const 
   {
     StructureChain<X, Y, Z...> structureChain;
     ${returnType} & ${returnVariable} = structureChain.template get<${returnType}>();
-    d.${vkCommand}( ${callArguments} );
+    )"
+#ifdef NEEDS_DISPATCH
+      "d."
+#endif
+      R"(${vkCommand}( ${callArguments} );
     return structureChain;
   })";
 
@@ -5612,7 +5744,11 @@ std::string VulkanHppGenerator::constructCommandVoidGetValue( std::string const 
       "  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
   {${vectorSizeCheck}
     ${returnType} ${returnVariable};
-    d.${vkCommand}( ${callArguments} );
+    )"
+#ifdef NEEDS_DISPATCH
+      "d."
+#endif
+      R"(${vkCommand}( ${callArguments} );
     return ${returnVariable};
   })";
 
@@ -7290,7 +7426,7 @@ std::map<size_t, size_t>
 void VulkanHppGenerator::appendIndexTypeTraits( std::string & str ) const
 {
 #ifdef NEEDS_INDEX_TYPE_TRAITS
-  auto indexType = m_enums.find( STRUCT_MACRO "IndexType" );
+  auto indexType = m_enums.find( STRUCT_PREFIX "IndexType" );
   assert( indexType != m_enums.end() );
 
   str += R"(
@@ -9968,7 +10104,7 @@ void VulkanHppGenerator::setVulkanLicenseHeader( int line, std::string const & c
   }
 
   // and add a little message on our own
-  m_vulkanLicenseHeader += "\n\n// This header is generated from the Khronos Vulkan XML API Registry.";
+  m_vulkanLicenseHeader += "\n\n// This header is generated using [Vulkan-Hpp](https://github.com/KhronosGroup/Vulkan-Hpp)'s [fork](https://github.com/Cvelth/vkma_vulkan_hpp_fork).";
   m_vulkanLicenseHeader = trim( m_vulkanLicenseHeader ) + "\n";
 }
 
@@ -11876,29 +12012,63 @@ namespace std
   }
 
 #ifndef )" HEADER_MACRO R"(_NO_SMART_HANDLE
-  template <typename T, typename D>
-  )" HEADER_MACRO R"(_INLINE typename ResultValueType<UniqueHandle<T,D>>::type createResultValue( Result result, T & data, char const * message, typename UniqueHandleTraits<T,D>::deleter const& deleter )
+  template <typename T)"
+#ifdef NEEDS_DISPATCH
+  R"(, typename Dispatch)"
+#endif
+  ">\n" HEADER_MACRO R"(_INLINE typename ResultValueType<UniqueHandle<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>>::type createResultValue( Result result, T & data, char const * message, typename UniqueHandleTraits<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>::deleter const& deleter )
   {
 #ifdef )" HEADER_MACRO R"(_NO_EXCEPTIONS
     ignore(message);
     )" HEADER_MACRO R"(_ASSERT_ON_RESULT( result == Result::eSuccess );
-    return ResultValue<UniqueHandle<T,D>>( result, UniqueHandle<T,D>(data, deleter) );
+    return ResultValue<UniqueHandle<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>>( result, UniqueHandle<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>(data, deleter) );
 #else
     if ( result != Result::eSuccess )
     {
       throwResultException( result, message );
     }
-    return UniqueHandle<T,D>(data, deleter);
+    return UniqueHandle<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>(data, deleter);
 #endif
   }
 
-  template <typename T, typename D>
-  )" HEADER_MACRO R"(_INLINE ResultValue<UniqueHandle<T, D>>
+  template <typename T)"
+#ifdef NEEDS_DISPATCH
+  R"(, typename Dispatch)"
+#endif
+  ">\n" HEADER_MACRO R"(_INLINE ResultValue<UniqueHandle<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>>
                     createResultValue( Result                                             result,
                                        T &                                                data,
                                        char const *                                       message,
                                        std::initializer_list<Result>                      successCodes,
-                                       typename UniqueHandleTraits<T, D>::deleter const & deleter )
+                                       typename UniqueHandleTraits<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>::deleter const & deleter )
   {
 #  ifdef )" HEADER_MACRO R"(_NO_EXCEPTIONS
     ignore( message );
@@ -11910,17 +12080,40 @@ namespace std
       throwResultException( result, message );
     }
 #  endif
-    return ResultValue<UniqueHandle<T, D>>( result, UniqueHandle<T, D>( data, deleter ) );
+    return ResultValue<UniqueHandle<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>>( result, UniqueHandle<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>( data, deleter ) );
   }
 
-  template <typename T, typename D>
-  )" HEADER_MACRO R"(_INLINE typename ResultValueType<std::vector<UniqueHandle<T, D>>>::type
-    createResultValue( Result result, std::vector<UniqueHandle<T, D>> && data, char const * message )
+  template <typename T)"
+#ifdef NEEDS_DISPATCH
+  R"(, typename Dispatch)"
+#endif
+  ">\n" HEADER_MACRO R"(_INLINE typename ResultValueType<std::vector<UniqueHandle<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>>>::type
+    createResultValue( Result result, std::vector<UniqueHandle<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>> && data, char const * message )
   {
 #  ifdef )" HEADER_MACRO R"(_NO_EXCEPTIONS
     ignore( message );
     )" HEADER_MACRO R"(_ASSERT_ON_RESULT( result == Result::eSuccess );
-    return ResultValue<std::vector<UniqueHandle<T, D>>>( result, std::move( data ) );
+    return ResultValue<std::vector<UniqueHandle<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>>>( result, std::move( data ) );
 #  else
     if ( result != Result::eSuccess )
     {
@@ -11930,10 +12123,21 @@ namespace std
 #  endif
   }
 
-  template <typename T, typename D>
-  )" HEADER_MACRO R"(_INLINE ResultValue<std::vector<UniqueHandle<T, D>>>
+  template <typename T)"
+#ifdef NEEDS_DISPATCH
+  R"(, typename Dispatch)"
+#endif
+  ">\n" HEADER_MACRO R"(_INLINE ResultValue<std::vector<UniqueHandle<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>>>
                     createResultValue( Result                             result,
-                                       std::vector<UniqueHandle<T, D>> && data,
+                                       std::vector<UniqueHandle<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>> && data,
                                        char const *                       message,
                                        std::initializer_list<Result>      successCodes )
   {
@@ -11947,7 +12151,11 @@ namespace std
       throwResultException( result, message );
     }
 #  endif
-    return ResultValue<std::vector<UniqueHandle<T, D>>>( result, std::move( data ) );
+    return ResultValue<std::vector<UniqueHandle<T)"
+#ifdef NEEDS_DISPATCH
+  ", Dispatch"
+#endif
+  R"(>>>( result, std::move( data ) );
   }
 #endif
 )";
