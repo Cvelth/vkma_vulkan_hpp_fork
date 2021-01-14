@@ -39,6 +39,9 @@
 #ifndef INCLUDED_FILENAME
 # define INCLUDED_FILENAME "vulkan/vulkan.h"
 #endif
+#ifdef INCLUDED_BINDINGS
+# define NEEDS_INCLUDED_BINDINGS INCLUDED_BINDINGS
+#endif
 
 #ifndef COMMAND_PREFIX
 # define COMMAND_PREFIX "vk"
@@ -12194,6 +12197,21 @@ namespace std
     static const size_t estimatedLength = 4 * 1024 * 1024;
     str.reserve( estimatedLength );
     str += generator.getVulkanLicenseHeader() + includes + "\n";
+#ifdef NEEDS_INCLUDED_BINDINGS
+    if ( std::ifstream stream( NEEDS_INCLUDED_BINDINGS, std::fstream::ate ); stream )
+    {
+      size_t      source_size = stream.tellg();
+      std::string source( source_size, '\0' );
+      stream.seekg( 0 );
+      stream.read( source.data(), source_size );
+
+      str += "// START_EXTERNAL_BINDINGS\n";
+      str += source;
+      str += "\n// END_EXTERNAL_BINDINGS\n\n";
+    }
+    else
+      std::cout << "VulkanHppGenerator: failed to include bindings: " << NEEDS_INCLUDED_BINDINGS << " not found\n";
+#endif
 #ifdef NEEDS_VERSION_CHECK
     appendVersionCheck( str, generator.getVersion() );
 #endif
