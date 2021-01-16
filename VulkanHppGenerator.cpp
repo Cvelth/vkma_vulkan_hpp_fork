@@ -4289,7 +4289,11 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
 #ifdef NEEDS_DISPATCH
       R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)" ">\n"
 #endif
-      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<UniqueHandle<${returnBaseType}, Dispatch>>::type ${commandName}Unique( ${argumentList} )${const};)";
+      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<UniqueHandle<${returnBaseType})"
+#ifdef NEEDS_DISPATCH
+      ", Dispatch"
+#endif
+      R"(>>::type ${commandName}Unique( ${argumentList} )${const};)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
