@@ -3235,12 +3235,21 @@ std::string VulkanHppGenerator::constructArgumentListEnhanced( std::vector<Param
         argumentList += "const " + stripPrefix( params[i].type.type, STRUCT_PREFIX ) + " & " +
                         stripPluralS( startLowerCase( stripPrefix( params[i].name, "p" ) ) );
       }
+      else if ( params[i].type.isPointerToConstPointer() )
+      {
+        assert( params[i].len.empty() && !params[i].optional );
+        if ( !params[i].type.prefix.empty() )
+        {
+          argumentList += params[i].type.prefix + " ";
+        }
+        argumentList += params[i].type.type + " *& " + params[i].name;
+      }
       else if ( params[i].type.isConstPointer() )
       {
         std::string name = startLowerCase( stripPrefix( params[i].name, "p" ) );
         if ( params[i].len.empty() )
         {
-          assert( !params[i].type.prefix.empty() && ( params[i].type.postfix == "*" || params[i].type.postfix == "**") );
+          assert( !params[i].type.prefix.empty() && ( params[i].type.postfix == "*" || params[i].type.postfix == "**" ) );
           assert( params[i].arraySizes.empty() );
           if ( params[i].type.type == "void" )
           {
@@ -4924,7 +4933,7 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
         ">, " + handleType + "Allocator>>::type" )
       : ( "ResultValue<std::vector<UniqueHandle<" + handleType +
 #ifdef NEEDS_DISPATCH
-        ", Dispatch" + 
+        ", Dispatch" +
 #endif
         ">, " + handleType + "Allocator>>" );
 
@@ -5706,6 +5715,10 @@ std::string VulkanHppGenerator::constructCommandVoidGetValue( std::string const 
   if ( beginsWith( returnType, STRUCT_PREFIX ) )
   {
     returnType = HEADER_MACRO "_NAMESPACE::" + stripPrefix( returnType, STRUCT_PREFIX );
+  }
+  else if ( commandData.params[returnParamIndex].type.isPointerToConstPointer() )
+  {
+    returnType = commandData.params[returnParamIndex].type.prefix + " " + returnType + "*";
   }
 
   bool needsVectorSizeCheck =
@@ -7396,7 +7409,7 @@ std::vector<size_t>
   {
     // very special handling of parameters of some types, which always come as a non-const pointer but are not meant to
     // be a potential return value!
-    if ( params[i].type.isNonConstPointer() &&
+    if ( ( params[i].type.isNonConstPointer() || params[i].type.isPointerToConstPointer() ) &&
          ( specialPointerTypes.find( params[i].type.type ) == specialPointerTypes.end() ) )
     {
       nonConstPointerParamIndices.push_back( i );
@@ -10812,7 +10825,7 @@ int main( int argc, char ** argv )
   static const std::string classObjectDestroy = R"(
   struct AllocationCallbacks;
 
-  template <typename OwnerType)" 
+  template <typename OwnerType)"
 #ifdef NEEDS_DISPATCH
     ", typename Dispatch"
 #endif
@@ -10923,7 +10936,7 @@ int main( int argc, char ** argv )
 )";
 
   static const std::string classObjectFree = R"(
-  template <typename OwnerType)" 
+  template <typename OwnerType)"
 #ifdef NEEDS_DISPATCH
       ", typename Dispatch"
 #endif
@@ -10986,7 +10999,7 @@ int main( int argc, char ** argv )
 )";
 
   static const std::string classObjectRelease = R"(
-  template <typename OwnerType)" 
+  template <typename OwnerType)"
 #ifdef NEEDS_DISPATCH
       ", typename Dispatch"
 #endif
@@ -11058,7 +11071,7 @@ int main( int argc, char ** argv )
 )";
 
   static const std::string classPoolFree = R"(
-  template <typename OwnerType, typename PoolType)" 
+  template <typename OwnerType, typename PoolType)"
 #ifdef NEEDS_DISPATCH
     ", typename Dispatch"
 #endif
@@ -12225,9 +12238,9 @@ namespace std
 #endif
     appendTypesafeStuff( str, generator.getTypesafeCheck() );
     str += defines + "\n" + "namespace " HEADER_MACRO "_NAMESPACE\n" + "{\n" + classArrayProxy + classArrayWrapper +
-           classFlags + classOptional + 
+           classFlags + classOptional +
 #ifdef NEEDS_STRUCTURE_CHAIN
-           classStructureChain + 
+           classStructureChain +
 #endif
            classUniqueHandle;
 #ifdef NEEDS_DISPATCH

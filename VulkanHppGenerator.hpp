@@ -86,6 +86,11 @@ private:
       return ( prefix.find( "const" ) != std::string::npos ) && ( postfix.find( '*' ) != std::string::npos );
     }
 
+    bool isPointerToConstPointer() const
+    {
+      return ( prefix.find( "const" ) != std::string::npos ) && ( postfix.find( "**" ) != std::string::npos );
+    }
+
     bool isNonConstPointer() const
     {
       return ( prefix.find( "const" ) == std::string::npos ) && ( postfix.find( '*' ) != std::string::npos );
