@@ -23,75 +23,75 @@
 #include <regex>
 
 #ifndef INPUT_FILENAME
-# ifdef VK_SPEC
-#  define INPUT_FILENAME VK_SPEC
-# else
-#  define INPUT_FILENAME "vk.xml"
-# endif
+#  ifdef VK_SPEC
+#    define INPUT_FILENAME VK_SPEC
+#  else
+#    define INPUT_FILENAME "vk.xml"
+#  endif
 #endif
 #ifndef OUTPUT_FILENAME
-# ifdef VULKAN_HPP_FILE
-#  define OUTPUT_FILENAME VULKAN_HPP_FILE
-# else
-#  define OUTPUT_FILENAME "vulkan.hpp"
-# endif
+#  ifdef VULKAN_HPP_FILE
+#    define OUTPUT_FILENAME VULKAN_HPP_FILE
+#  else
+#    define OUTPUT_FILENAME "vulkan.hpp"
+#  endif
 #endif
 #ifndef INCLUDED_FILENAME
-# define INCLUDED_FILENAME "vulkan/vulkan.h"
+#  define INCLUDED_FILENAME "vulkan/vulkan.h"
 #endif
 #ifdef INCLUDED_BINDINGS
-# define NEEDS_INCLUDED_BINDINGS INCLUDED_BINDINGS
+#  define NEEDS_INCLUDED_BINDINGS INCLUDED_BINDINGS
 #endif
 
 #ifndef COMMAND_PREFIX
-# define COMMAND_PREFIX "vk"
+#  define COMMAND_PREFIX "vk"
 #endif
 #ifndef MACRO_PREFIX
-# define MACRO_PREFIX "VK"
+#  define MACRO_PREFIX "VK"
 #endif
 #ifndef STRUCT_PREFIX
-# define STRUCT_PREFIX "Vk"
+#  define STRUCT_PREFIX "Vk"
 #endif
 #ifdef CUSTOM_RESULT_ENUM_PREFIX
-# define RESULT_ENUM_PREFIX CUSTOM_RESULT_ENUM_PREFIX
+#  define RESULT_ENUM_PREFIX CUSTOM_RESULT_ENUM_PREFIX
 #else
-# define RESULT_ENUM_PREFIX MACRO_PREFIX
+#  define RESULT_ENUM_PREFIX MACRO_PREFIX
 #endif
 
 #ifndef DEFAULT_NAMESPACE
-# define DEFAULT_NAMESPACE "vk"
+#  define DEFAULT_NAMESPACE "vk"
 #endif
 
 #ifndef SPEC_API_NAME
-# define SPEC_API_NAME "vulkan"
+#  define SPEC_API_NAME "vulkan"
 #endif
 #ifndef HEADER_NAME
-# define HEADER_NAME "vulkan.hpp"
+#  define HEADER_NAME "vulkan.hpp"
 #endif
 #ifndef HEADER_MACRO
-# define HEADER_MACRO "VULKAN_HPP"
+#  define HEADER_MACRO "VULKAN_HPP"
 #endif
 
 #ifndef NO_DISPATCH
-# define NEEDS_DISPATCH true
+#  define NEEDS_DISPATCH true
 #endif
 #ifndef NO_VERSION_CHECK
-# define NEEDS_VERSION_CHECK true
+#  define NEEDS_VERSION_CHECK true
 #endif
 #ifndef NO_STRUCTURE_CHAIN
-# define NEEDS_STRUCTURE_CHAIN true
+#  define NEEDS_STRUCTURE_CHAIN true
 #endif
 #ifndef NO_OBJECT_TYPE_ENUM
-# define NEEDS_OBJECT_TYPE_ENUM true
+#  define NEEDS_OBJECT_TYPE_ENUM true
 #endif
 #ifndef NO_DEBUG_REPORT_OBJECT_TYPE_ENUM
-# define NEEDS_DEBUG_REPORT_OBJECT_TYPE_ENUM true
+#  define NEEDS_DEBUG_REPORT_OBJECT_TYPE_ENUM true
 #endif
 #ifndef NO_STRUCTURE_TYPE_ENUM
-# define NEEDS_STRUCTURE_TYPE_ENUM true
+#  define NEEDS_STRUCTURE_TYPE_ENUM true
 #endif
 #ifndef NO_INDEX_TYPE_TRAITS
-# define NEEDS_INDEX_TYPE_TRAITS true
+#  define NEEDS_INDEX_TYPE_TRAITS true
 #endif
 
 void             appendArgumentCount( std::string &       str,
@@ -185,8 +185,10 @@ void appendTypesafeStuff( std::string & str, std::string const & typesafeCheck )
     "// 32-bit vulkan is not typesafe for handles, so don't allow copy constructors on this platform by default.\n"
     "// To enable this feature on 32-bit platforms please define " HEADER_MACRO "_TYPESAFE_CONVERSION\n" +
     ( !typesafeCheck.empty() ? typesafeCheck + "\n" : "" ) +
-    "# if !defined( " HEADER_MACRO "_TYPESAFE_CONVERSION )\n"
-    "#  define " HEADER_MACRO "_TYPESAFE_CONVERSION\n"
+    "# if !defined( " HEADER_MACRO
+    "_TYPESAFE_CONVERSION )\n"
+    "#  define " HEADER_MACRO
+    "_TYPESAFE_CONVERSION\n"
     "# endif\n" +
     ( !typesafeCheck.empty() ? "#endif\n" : "" );
 }
@@ -194,7 +196,8 @@ void appendTypesafeStuff( std::string & str, std::string const & typesafeCheck )
 void appendVersionCheck( std::string & str, std::string const & version )
 {
   str += "static_assert( " MACRO_PREFIX "_HEADER_VERSION == " + version +
-         " , \"Wrong " MACRO_PREFIX "_HEADER_VERSION!\" );\n"
+         " , \"Wrong " MACRO_PREFIX
+         "_HEADER_VERSION!\" );\n"
          "\n";
 }
 
@@ -354,7 +357,8 @@ std::string createEnumValueName( std::string const & name,
 std::string createSuccessCode( std::string const & code, std::set<std::string> const & tags )
 {
   std::string tag = findTag( tags, code );
-  // on each success code: prepend 'e', strip <MACRO_PREFIX>"_" and a tag, convert it to camel case, and add the tag again
+  // on each success code: prepend 'e', strip <MACRO_PREFIX>"_" and a tag, convert it to camel case, and add the tag
+  // again
   return "e" + toCamelCase( stripPostfix( stripPrefix( code, MACRO_PREFIX "_" ), tag ) ) + tag;
 }
 
@@ -474,8 +478,8 @@ std::string getEnumPrefix( int line, std::string const & name, bool bitmask )
   }
   else if ( bitmask )
   {
-    // for a bitmask enum, start with <MACRO_PREFIX>, cut off the trailing "FlagBits", and convert that name to upper case
-    // end that with "Bit"
+    // for a bitmask enum, start with <MACRO_PREFIX>, cut off the trailing "FlagBits", and convert that name to upper
+    // case end that with "Bit"
     size_t pos = name.find( "FlagBits" );
     check( pos != std::string::npos, line, "bitmask <" + name + "> does not contain <FlagBits>" );
     prefix = toUpperCase( name.substr( 0, pos ) ) + "_";
@@ -906,8 +910,8 @@ void VulkanHppGenerator::appendBaseTypes( std::string & str ) const
   for ( auto const & baseType : m_baseTypes )
   {
     if ( ( baseType.first != "VkFlags" ) &&
-         ( baseType.first !=
-          "VkFlags64" ) )  // filter out <STRUCT_PREFIX>Flags and <STRUCT_PREFIX>Flags64, as they are mapped to our own Flags class
+         ( baseType.first != "VkFlags64" ) )  // filter out <STRUCT_PREFIX>Flags and <STRUCT_PREFIX>Flags64, as they are
+                                              // mapped to our own Flags class
     {
       str += "  using " + stripPrefix( baseType.first, STRUCT_PREFIX ) + " = " + baseType.second.type + ";\n";
     }
@@ -993,7 +997,8 @@ void VulkanHppGenerator::appendBitmask( std::string &                      str,
       allFlags += bitmaskType + "(" + enumName + "::" + value.vkValue + ")";
     }
 
-    static const std::string bitmaskOperatorsTemplate = R"(
+    static const std::string bitmaskOperatorsTemplate =
+      R"(
   template <> struct FlagTraits<${enumName}>
   {
     enum : ${bitmaskType}
@@ -1002,22 +1007,26 @@ void VulkanHppGenerator::appendBitmask( std::string &                      str,
     };
   };
 
-  )" HEADER_MACRO R"(_INLINE )" HEADER_MACRO R"(_CONSTEXPR ${bitmaskName} operator|( ${enumName} bit0, ${enumName} bit1 ) )" HEADER_MACRO R"(_NOEXCEPT
+  )" HEADER_MACRO R"(_INLINE )" HEADER_MACRO
+      R"(_CONSTEXPR ${bitmaskName} operator|( ${enumName} bit0, ${enumName} bit1 ) )" HEADER_MACRO R"(_NOEXCEPT
   {
     return ${bitmaskName}( bit0 ) | bit1;
   }
 
-  )" HEADER_MACRO R"(_INLINE )" HEADER_MACRO R"(_CONSTEXPR ${bitmaskName} operator&( ${enumName} bit0, ${enumName} bit1 ) )" HEADER_MACRO R"(_NOEXCEPT
+  )" HEADER_MACRO R"(_INLINE )" HEADER_MACRO
+      R"(_CONSTEXPR ${bitmaskName} operator&( ${enumName} bit0, ${enumName} bit1 ) )" HEADER_MACRO R"(_NOEXCEPT
   {
     return ${bitmaskName}( bit0 ) & bit1;
   }
 
-  )" HEADER_MACRO R"(_INLINE )" HEADER_MACRO R"(_CONSTEXPR ${bitmaskName} operator^( ${enumName} bit0, ${enumName} bit1 ) )" HEADER_MACRO R"(_NOEXCEPT
+  )" HEADER_MACRO R"(_INLINE )" HEADER_MACRO
+      R"(_CONSTEXPR ${bitmaskName} operator^( ${enumName} bit0, ${enumName} bit1 ) )" HEADER_MACRO R"(_NOEXCEPT
   {
     return ${bitmaskName}( bit0 ) ^ bit1;
   }
 
-  )" HEADER_MACRO R"(_INLINE )" HEADER_MACRO R"(_CONSTEXPR ${bitmaskName} operator~( ${enumName} bits ) )" HEADER_MACRO R"(_NOEXCEPT
+  )" HEADER_MACRO R"(_INLINE )" HEADER_MACRO R"(_CONSTEXPR ${bitmaskName} operator~( ${enumName} bits ) )" HEADER_MACRO
+      R"(_NOEXCEPT
   {
     return ~( ${bitmaskName}( bits ) );
   }
@@ -1093,7 +1102,7 @@ void VulkanHppGenerator::appendCall( std::string &                    str,
 #if NEEDS_DISPATCH
   str += "d." + name + "( ";
 #else
-    str += name + "( ";
+  str += name + "( ";
 #endif
 
   if ( !commandData.handle.empty() )
@@ -1980,11 +1989,16 @@ void VulkanHppGenerator::appendDispatchLoaderDynamic( std::string & str )
 #if !defined()" MACRO_PREFIX R"(_NO_PROTOTYPES)
     // This interface is designed to be used for per-device function pointers in combination with a linked vulkan library.
     template <typename DynamicLoader>
-    void init()" HEADER_MACRO R"(_NAMESPACE::Instance const& instance, )" HEADER_MACRO R"(_NAMESPACE::Device const& device, DynamicLoader const& dl) )" HEADER_MACRO R"(_NOEXCEPT
+    void init()" HEADER_MACRO R"(_NAMESPACE::Instance const& instance, )" HEADER_MACRO
+         R"(_NAMESPACE::Device const& device, DynamicLoader const& dl) )" HEADER_MACRO R"(_NOEXCEPT
     {
-      PFN_)" COMMAND_PREFIX R"(GetInstanceProcAddr getInstanceProcAddr = dl.template getProcAddress<PFN_)" COMMAND_PREFIX R"(GetInstanceProcAddr>(")" COMMAND_PREFIX R"(GetInstanceProcAddr");
-      PFN_)" COMMAND_PREFIX R"(GetDeviceProcAddr getDeviceProcAddr = dl.template getProcAddress<PFN_)" COMMAND_PREFIX R"(GetDeviceProcAddr>(")" COMMAND_PREFIX R"(GetDeviceProcAddr");
-      init(static_cast<)" STRUCT_PREFIX R"(Instance>(instance), getInstanceProcAddr, static_cast<)" STRUCT_PREFIX R"(Device>(device), device ? getDeviceProcAddr : nullptr);
+      PFN_)" COMMAND_PREFIX
+         R"(GetInstanceProcAddr getInstanceProcAddr = dl.template getProcAddress<PFN_)" COMMAND_PREFIX
+         R"(GetInstanceProcAddr>(")" COMMAND_PREFIX R"(GetInstanceProcAddr");
+      PFN_)" COMMAND_PREFIX R"(GetDeviceProcAddr getDeviceProcAddr = dl.template getProcAddress<PFN_)" COMMAND_PREFIX
+         R"(GetDeviceProcAddr>(")" COMMAND_PREFIX R"(GetDeviceProcAddr");
+      init(static_cast<)" STRUCT_PREFIX R"(Instance>(instance), getInstanceProcAddr, static_cast<)" STRUCT_PREFIX
+         R"(Device>(device), device ? getDeviceProcAddr : nullptr);
     }
 
     // This interface is designed to be used for per-device function pointers in combination with a linked vulkan library.
@@ -1993,7 +2007,8 @@ void VulkanHppGenerator::appendDispatchLoaderDynamic( std::string & str )
       = )" HEADER_MACRO R"(_NAMESPACE::DynamicLoader
 #endif
     >
-    void init()" HEADER_MACRO R"(_NAMESPACE::Instance const& instance, )" HEADER_MACRO R"(_NAMESPACE::Device const& device) )" HEADER_MACRO R"(_NOEXCEPT
+    void init()" HEADER_MACRO R"(_NAMESPACE::Instance const& instance, )" HEADER_MACRO
+         R"(_NAMESPACE::Device const& device) )" HEADER_MACRO R"(_NOEXCEPT
     {
       static DynamicLoader dl;
       init(instance, device, dl);
@@ -2017,13 +2032,19 @@ void VulkanHppGenerator::appendDispatchLoaderDynamic( std::string & str )
   str += R"(    }
 
     // This interface does not require a linked vulkan library.
-    DispatchLoaderDynamic( )" STRUCT_PREFIX R"(Instance instance, PFN_)" COMMAND_PREFIX R"(GetInstanceProcAddr getInstanceProcAddr, )" STRUCT_PREFIX R"(Device device = )" MACRO_PREFIX R"(_NULL_HANDLE, PFN_)" COMMAND_PREFIX R"(GetDeviceProcAddr getDeviceProcAddr = nullptr ) )" HEADER_MACRO R"(_NOEXCEPT
+    DispatchLoaderDynamic( )" STRUCT_PREFIX R"(Instance instance, PFN_)" COMMAND_PREFIX
+         R"(GetInstanceProcAddr getInstanceProcAddr, )" STRUCT_PREFIX R"(Device device = )" MACRO_PREFIX
+         R"(_NULL_HANDLE, PFN_)" COMMAND_PREFIX R"(GetDeviceProcAddr getDeviceProcAddr = nullptr ) )" HEADER_MACRO
+         R"(_NOEXCEPT
     {
       init( instance, getInstanceProcAddr, device, getDeviceProcAddr );
     }
 
     // This interface does not require a linked vulkan library.
-    void init( )" STRUCT_PREFIX R"(Instance instance, PFN_)" COMMAND_PREFIX R"(GetInstanceProcAddr getInstanceProcAddr, )" STRUCT_PREFIX R"(Device device = )" MACRO_PREFIX R"(_NULL_HANDLE, PFN_)" COMMAND_PREFIX R"(GetDeviceProcAddr /*getDeviceProcAddr*/ = nullptr ) )" HEADER_MACRO R"(_NOEXCEPT
+    void init( )" STRUCT_PREFIX R"(Instance instance, PFN_)" COMMAND_PREFIX
+         R"(GetInstanceProcAddr getInstanceProcAddr, )" STRUCT_PREFIX R"(Device device = )" MACRO_PREFIX
+         R"(_NULL_HANDLE, PFN_)" COMMAND_PREFIX R"(GetDeviceProcAddr /*getDeviceProcAddr*/ = nullptr ) )" HEADER_MACRO
+         R"(_NOEXCEPT
     {
       )" HEADER_MACRO R"(_ASSERT(instance && getInstanceProcAddr);
       )" COMMAND_PREFIX R"(GetInstanceProcAddr = getInstanceProcAddr;
@@ -2080,7 +2101,8 @@ void VulkanHppGenerator::appendDispatchLoaderStatic( std::string & str )
     std::string enter, leave;
     std::tie( enter, leave ) = generateProtection( command.second.feature, command.second.extensions );
     str += enter + "    " + command.second.returnType + " " COMMAND_PREFIX + commandName + "( " + parameterList +
-           " ) const " HEADER_MACRO "_NOEXCEPT\n"
+           " ) const " HEADER_MACRO
+           "_NOEXCEPT\n"
            "    {\n"
            "      return ::" COMMAND_PREFIX +
            commandName + "( " + parameters +
@@ -2094,7 +2116,8 @@ void VulkanHppGenerator::appendDispatchLoaderStatic( std::string & str )
       str += "\n";
       std::tie( enter, leave ) = generateProtection( aliasData.second.feature, aliasData.second.extensions );
       str += enter + "    " + command.second.returnType + " " COMMAND_PREFIX + commandName + "( " + parameterList +
-             " ) const " HEADER_MACRO "_NOEXCEPT\n"
+             " ) const " HEADER_MACRO
+             "_NOEXCEPT\n"
              "    {\n"
              "      return ::" COMMAND_PREFIX +
              commandName + "( " + parameters +
@@ -2132,7 +2155,8 @@ void VulkanHppGenerator::appendDispatchLoaderDefault( std::string & str )
 #if !defined()" HEADER_MACRO R"(_DEFAULT_DISPATCHER)
 # if )" HEADER_MACRO R"(_DISPATCH_LOADER_DYNAMIC == 1
 #  define )" HEADER_MACRO R"(_DEFAULT_DISPATCHER ::)" HEADER_MACRO R"(_NAMESPACE::defaultDispatchLoaderDynamic
-#  define )" HEADER_MACRO R"(_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE namespace )" HEADER_MACRO R"(_NAMESPACE { )" HEADER_MACRO R"(_STORAGE_API DispatchLoaderDynamic defaultDispatchLoaderDynamic; }
+#  define )" HEADER_MACRO R"(_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE namespace )" HEADER_MACRO
+    R"(_NAMESPACE { )" HEADER_MACRO R"(_STORAGE_API DispatchLoaderDynamic defaultDispatchLoaderDynamic; }
   extern )" HEADER_MACRO R"(_STORAGE_API DispatchLoaderDynamic defaultDispatchLoaderDynamic;
 # else
 #  define )" HEADER_MACRO R"(_DEFAULT_DISPATCHER ::)" HEADER_MACRO R"(_NAMESPACE::DispatchLoaderStatic()
@@ -2198,16 +2222,17 @@ void VulkanHppGenerator::appendDispatchLoaderDynamicCommand( std::string &      
   if ( commandData.handle.empty() )
   {
     assert( commandData.aliasData.empty() );
-    emptyFunctions += enter + "      " + commandName + " = PFN_" + commandName + "( " COMMAND_PREFIX "GetInstanceProcAddr( NULL, \"" +
-                      commandName + "\" ) );\n" + leave;
+    emptyFunctions += enter + "      " + commandName + " = PFN_" + commandName +
+                      "( " COMMAND_PREFIX "GetInstanceProcAddr( NULL, \"" + commandName + "\" ) );\n" + leave;
   }
   else if ( isDeviceFunction )
   {
-    deviceFunctions += enter + "      " + commandName + " = PFN_" + commandName + "( " COMMAND_PREFIX "GetDeviceProcAddr( device, \"" +
-                       commandName + "\" ) );\n" + leave;
+    deviceFunctions += enter + "      " + commandName + " = PFN_" + commandName +
+                       "( " COMMAND_PREFIX "GetDeviceProcAddr( device, \"" + commandName + "\" ) );\n" + leave;
 
     deviceFunctionsInstance += enter + "      " + commandName + " = PFN_" + commandName +
-                               "( " COMMAND_PREFIX "GetInstanceProcAddr( instance, \"" + commandName + "\" ) );\n" + leave;
+                               "( " COMMAND_PREFIX "GetInstanceProcAddr( instance, \"" + commandName + "\" ) );\n" +
+                               leave;
   }
   else
   {
@@ -2305,8 +2330,8 @@ void VulkanHppGenerator::appendEnum( std::string & str, std::pair<std::string, E
 
   if ( !enumData.second.alias.empty() )
   {
-    str +=
-      "  using " + stripPrefix( enumData.second.alias, STRUCT_PREFIX ) + " = " + stripPrefix( enumData.first, STRUCT_PREFIX ) + ";\n";
+    str += "  using " + stripPrefix( enumData.second.alias, STRUCT_PREFIX ) + " = " +
+           stripPrefix( enumData.first, STRUCT_PREFIX ) + ";\n";
   }
 }
 
@@ -2351,7 +2376,8 @@ void VulkanHppGenerator::appendEnumInitializer( std::string &                   
 {
   // enum arguments might need special initialization
   assert( type.prefix.empty() && !values.empty() );
-  std::string value = HEADER_MACRO "_NAMESPACE::" + stripPrefix( type.type, STRUCT_PREFIX ) + "::" + values.front().vkValue;
+  std::string value =
+    HEADER_MACRO "_NAMESPACE::" + stripPrefix( type.type, STRUCT_PREFIX ) + "::" + values.front().vkValue;
   if ( arraySizes.empty() )
   {
     str += value;
@@ -2398,9 +2424,9 @@ void VulkanHppGenerator::appendEnumToString( std::string &                      
     {
       str += "      case " + enumName + "::" + value.vkValue + " : return \"" + value.vkValue.substr( 1 ) + "\";\n";
     }
-    str +=
-      "      default: return \"invalid ( \" + " HEADER_MACRO "_NAMESPACE::toHexString( static_cast<uint32_t>( value ) ) + \" )\";\n"
-      "    }\n";
+    str += "      default: return \"invalid ( \" + " HEADER_MACRO
+           "_NAMESPACE::toHexString( static_cast<uint32_t>( value ) ) + \" )\";\n"
+           "    }\n";
   }
 
   str += "  }\n";
@@ -2446,7 +2472,8 @@ ${i}  )#" HEADER_MACRO R"#(_ASSERT( ${firstVectorName}.size() == ${secondVectorN
 #else
 ${i}  if ( ${firstVectorName}.size() != ${secondVectorName}.size() )
 ${i}  {
-${i}    throw LogicError( )#" HEADER_MACRO R"#(_NAMESPACE_STRING "::${className}::${commandName}: ${firstVectorName}.size() != ${secondVectorName}.size()" );
+${i}    throw LogicError( )#" HEADER_MACRO
+    R"#(_NAMESPACE_STRING "::${className}::${commandName}: ${firstVectorName}.size() != ${secondVectorName}.size()" );
 ${i}  }
 #endif  /*)#" HEADER_MACRO R"#(_NO_EXCEPTIONS*/
 )#";
@@ -2503,7 +2530,8 @@ void VulkanHppGenerator::appendFunctionBodyEnhancedReturnResultValue( std::strin
 
   // now the function name (with full namespace) as a string
   str += HEADER_MACRO "_NAMESPACE_STRING\"::" +
-         ( commandData.handle.empty() ? "" : stripPrefix( commandData.handle, STRUCT_PREFIX ) + "::" ) + commandName + "\"";
+         ( commandData.handle.empty() ? "" : stripPrefix( commandData.handle, STRUCT_PREFIX ) + "::" ) + commandName +
+         "\"";
 
   if ( !twoStep && ( 1 < commandData.successCodes.size() ) )
   {
@@ -2537,8 +2565,8 @@ void VulkanHppGenerator::appendFunctionBodyEnhancedTwoStep( std::string &       
 
   // take the pure type of the size parameter; strip the leading 'p' from its name for its local name
   std::string sizeName = startLowerCase( stripPrefix( commandData.params[returnit->second].name, "p" ) );
-  str +=
-    indentation + "  " + stripPrefix( commandData.params[returnit->second].type.type, STRUCT_PREFIX ) + " " + sizeName + ";\n";
+  str += indentation + "  " + stripPrefix( commandData.params[returnit->second].type.type, STRUCT_PREFIX ) + " " +
+         sizeName + ";\n";
 
   std::string const multiSuccessTemplate =
     R"(${i}  Result result;
@@ -2676,7 +2704,8 @@ void VulkanHppGenerator::appendHandle( std::string & str, std::pair<std::string,
 #if !defined( NDEBUG )
         auto handleIt = m_handles.find( "" );
         assert( ( handleIt != m_handles.end() ) && ( handleIt->second.childrenHandles.size() == 2 ) );
-        assert( handleIt->second.childrenHandles.find(STRUCT_PREFIX "Instance" ) != handleIt->second.childrenHandles.end() );
+        assert( handleIt->second.childrenHandles.find( STRUCT_PREFIX "Instance" ) !=
+                handleIt->second.childrenHandles.end() );
 #endif
 
         appendUniqueTypes( str, "", { STRUCT_PREFIX "Instance" } );
@@ -2756,27 +2785,31 @@ void VulkanHppGenerator::appendHandle( std::string & str, std::pair<std::string,
         pos = destroyCommandString.find( " " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT", pos );
         if ( pos != std::string::npos )
         {
-          destroyCommandString.erase( pos, strlen(" " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT" ) );
+          destroyCommandString.erase( pos, strlen( " " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT" ) );
         }
         commands += "\n" + destroyCommandString;
       }
     }
 
-    static const std::string templateString = R"(
+    static const std::string templateString =
+      R"(
 ${enter}  class ${className}
   {
   public:
     using CType = )" STRUCT_PREFIX R"(${className};
 )"
 #ifdef NEEDS_OBJECT_TYPE_ENUM
-R"(
-    static )" HEADER_MACRO R"(_CONST_OR_CONSTEXPR )" HEADER_MACRO R"(_NAMESPACE::ObjectType objectType = )" HEADER_MACRO R"(_NAMESPACE::ObjectType::${objTypeEnum};)"
+      R"(
+    static )" HEADER_MACRO R"(_CONST_OR_CONSTEXPR )" HEADER_MACRO R"(_NAMESPACE::ObjectType objectType = )" HEADER_MACRO
+      R"(_NAMESPACE::ObjectType::${objTypeEnum};)"
 #endif
 #ifdef NEEDS_DEBUG_REPORT_OBJECT_TYPE_ENUM
-R"(
-    static )" HEADER_MACRO R"(_CONST_OR_CONSTEXPR )" HEADER_MACRO R"(_NAMESPACE::DebugReportObjectTypeEXT debugReportObjectType = )" HEADER_MACRO R"(_NAMESPACE::DebugReportObjectTypeEXT::${debugReportObjectType};)"
+      R"(
+    static )" HEADER_MACRO R"(_CONST_OR_CONSTEXPR )" HEADER_MACRO
+      R"(_NAMESPACE::DebugReportObjectTypeEXT debugReportObjectType = )" HEADER_MACRO
+      R"(_NAMESPACE::DebugReportObjectTypeEXT::${debugReportObjectType};)"
 #endif
-R"(
+      R"(
 
   public:
     )" HEADER_MACRO R"(_CONSTEXPR ${className}() )" HEADER_MACRO R"(_NOEXCEPT
@@ -2787,7 +2820,8 @@ R"(
       : m_${memberName}()" MACRO_PREFIX R"(_NULL_HANDLE)
     {}
 
-    )" HEADER_MACRO R"(_TYPESAFE_EXPLICIT ${className}( )" STRUCT_PREFIX R"(${className} ${memberName} ) )" HEADER_MACRO R"(_NOEXCEPT
+    )" HEADER_MACRO R"(_TYPESAFE_EXPLICIT ${className}( )" STRUCT_PREFIX R"(${className} ${memberName} ) )" HEADER_MACRO
+      R"(_NOEXCEPT
       : m_${memberName}( ${memberName} )
     {}
 
@@ -2842,12 +2876,14 @@ ${commands}
   private:
     )" STRUCT_PREFIX R"(${className} m_${memberName};
   };
-  static_assert( sizeof( )" HEADER_MACRO R"(_NAMESPACE::${className} ) == sizeof( )" STRUCT_PREFIX R"(${className} ), "handle and wrapper have different size!" );
+  static_assert( sizeof( )" HEADER_MACRO R"(_NAMESPACE::${className} ) == sizeof( )" STRUCT_PREFIX
+      R"(${className} ), "handle and wrapper have different size!" );
 )"
 #ifdef NEEDS_OBJECT_TYPE_ENUM
-R"(
+      R"(
   template <>
-  struct )" HEADER_MACRO R"(_DEPRECATED(")" COMMAND_PREFIX R"(::cpp_type is deprecated. Use )" COMMAND_PREFIX R"(::CppType instead.") cpp_type<ObjectType::${objTypeEnum}>
+  struct )" HEADER_MACRO R"(_DEPRECATED(")" COMMAND_PREFIX R"(::cpp_type is deprecated. Use )" COMMAND_PREFIX
+      R"(::CppType instead.") cpp_type<ObjectType::${objTypeEnum}>
   {
     using type = )" HEADER_MACRO R"(_NAMESPACE::${className};
   };
@@ -2859,9 +2895,9 @@ R"(
   };)"
 #endif
 #if NEEDS_DEBUG_REPORT_OBJECT_TYPE_ENUM
-    "\n\n${CppTypeFromDebugReportObjectTypeEXT}"
+      "\n\n${CppTypeFromDebugReportObjectTypeEXT}"
 #endif
-R"(
+      R"(
 
   template <>
   struct isVulkanHandleType<)" HEADER_MACRO R"(_NAMESPACE::${className}>
@@ -2875,20 +2911,22 @@ R"(
 #if NEEDS_DEBUG_REPORT_OBJECT_TYPE_ENUM
     auto enumIt = m_enums.find( "VkDebugReportObjectTypeEXT" );
     assert( enumIt != m_enums.end() );
-    auto                     valueIt                                     = std::find_if( enumIt->second.values.begin(),
+    auto                     valueIt = std::find_if( enumIt->second.values.begin(),
                                  enumIt->second.values.end(),
                                  [&className]( EnumValueData const & evd ) { return evd.vkValue == "e" + className; } );
-    static const std::string cppTypeFromDebugReportObjectTypeEXTTemplate = R"(
+    static const std::string cppTypeFromDebugReportObjectTypeEXTTemplate =
+      R"(
   template <>
-  struct CppType<)" HEADER_MACRO R"(_NAMESPACE::DebugReportObjectTypeEXT, )" HEADER_MACRO R"(_NAMESPACE::DebugReportObjectTypeEXT::e${className}>
+  struct CppType<)" HEADER_MACRO R"(_NAMESPACE::DebugReportObjectTypeEXT, )" HEADER_MACRO
+      R"(_NAMESPACE::DebugReportObjectTypeEXT::e${className}>
   {
     using Type = )" HEADER_MACRO R"(_NAMESPACE::${className};
   };
 )";
-    std::string              cppTypeFromDebugReportObjectTypeEXT =
+    std::string cppTypeFromDebugReportObjectTypeEXT =
       ( valueIt != enumIt->second.values.end() )
-                     ? replaceWithMap( cppTypeFromDebugReportObjectTypeEXTTemplate, { { "className", className } } )
-                     : "";
+        ? replaceWithMap( cppTypeFromDebugReportObjectTypeEXTTemplate, { { "className", className } } )
+        : "";
     std::string debugReportObjectType = ( valueIt != enumIt->second.values.end() ) ? valueIt->vkValue : "eUnknown";
 #endif
     std::string enter, leave;
@@ -2905,24 +2943,24 @@ R"(
     assert( valueIt != enumIt->second.values.end() );
 #endif
 
-    str += replaceWithMap( templateString,
-                           { { "className", className },
-                             { "commands", commands },
+    str += replaceWithMap( templateString, {
+      { "className", className }, { "commands", commands },
 #if NEEDS_DEBUG_REPORT_OBJECT_TYPE_ENUM
-                             { "CppTypeFromDebugReportObjectTypeEXT", cppTypeFromDebugReportObjectTypeEXT },
-                             { "debugReportObjectType", debugReportObjectType },
+        { "CppTypeFromDebugReportObjectTypeEXT", cppTypeFromDebugReportObjectTypeEXT },
+        { "debugReportObjectType", debugReportObjectType },
 #endif
-                             { "enter", enter },
-                             { "memberName", startLowerCase( stripPrefix( handleData.first, STRUCT_PREFIX ) ) },
+        { "enter", enter }, { "memberName", startLowerCase( stripPrefix( handleData.first, STRUCT_PREFIX ) ) },
 #ifdef NEEDS_OBJECT_TYPE_ENUM
-                             { "objTypeEnum", valueIt->vkValue }
+      {
+        "objTypeEnum", valueIt->vkValue
+      }
 #endif
-                           } );
+    } );
 
     if ( !handleData.second.alias.empty() )
     {
-      str += "  using " + stripPrefix( handleData.second.alias, STRUCT_PREFIX ) + " = " + stripPrefix( handleData.first, STRUCT_PREFIX ) +
-             ";\n";
+      str += "  using " + stripPrefix( handleData.second.alias, STRUCT_PREFIX ) + " = " +
+             stripPrefix( handleData.first, STRUCT_PREFIX ) + ";\n";
     }
     str += leave;
   }
@@ -3010,7 +3048,7 @@ void VulkanHppGenerator::appendHandlesCommandDefinitions( std::string & str ) co
         pos = destroyCommandString.find( " " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT", pos );
         if ( pos != std::string::npos )
         {
-          destroyCommandString.erase( pos, strlen(" " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT" ) );
+          destroyCommandString.erase( pos, strlen( " " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT" ) );
         }
 
         if ( complex )
@@ -3213,8 +3251,9 @@ void VulkanHppGenerator::appendStructCompareOperators( std::string &            
 #endif
 )";
 
-  str += replaceWithMap( compareTemplate,
-                         { { "name", stripPrefix( structData.first, STRUCT_PREFIX ) }, { "compareMembers", compareMembers } } );
+  str += replaceWithMap(
+    compareTemplate,
+    { { "name", stripPrefix( structData.first, STRUCT_PREFIX ) }, { "compareMembers", compareMembers } } );
 }
 
 std::string VulkanHppGenerator::constructArgumentListEnhanced( std::vector<ParamData> const & params,
@@ -3253,7 +3292,8 @@ std::string VulkanHppGenerator::constructArgumentListEnhanced( std::vector<Param
         std::string name = startLowerCase( stripPrefix( params[i].name, "p" ) );
         if ( params[i].len.empty() )
         {
-          assert( !params[i].type.prefix.empty() && ( params[i].type.postfix == "*" || params[i].type.postfix == "**" ) );
+          assert( !params[i].type.prefix.empty() &&
+                  ( params[i].type.postfix == "*" || params[i].type.postfix == "**" ) );
           assert( params[i].arraySizes.empty() );
           if ( params[i].type.type == "void" )
           {
@@ -3268,7 +3308,8 @@ std::string VulkanHppGenerator::constructArgumentListEnhanced( std::vector<Param
           }
           else
           {
-            argumentList += params[i].type.prefix + " " + stripPrefix( params[i].type.type, STRUCT_PREFIX ) + " & " + name;
+            argumentList +=
+              params[i].type.prefix + " " + stripPrefix( params[i].type.type, STRUCT_PREFIX ) + " & " + name;
           }
         }
         else
@@ -3356,7 +3397,7 @@ std::string VulkanHppGenerator::constructArgumentListEnhanced( std::vector<Param
   argumentList +=
     std::string( "Dispatch const & d" ) + ( definition ? "" : " " HEADER_MACRO "_DEFAULT_DISPATCHER_ASSIGNMENT" );
 #else
-  argumentList = argumentList.substr(0, argumentList.size() - 2);
+  argumentList = argumentList.substr( 0, argumentList.size() - 2 );
 #endif
   return argumentList;
 }
@@ -3376,7 +3417,7 @@ std::string VulkanHppGenerator::constructArgumentListStandard( std::vector<Param
 #ifdef NEEDS_DISPATCH
   argumentList += "Dispatch const & d ";
 #else
-  argumentList = argumentList.substr(0, argumentList.size() - 2);
+  argumentList = argumentList.substr( 0, argumentList.size() - 2 );
 #endif
   return argumentList;
 }
@@ -3643,16 +3684,19 @@ std::string VulkanHppGenerator::constructCommandResult( std::string const &     
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch>)" "\n"
+      R"(  template <typename Dispatch>)"
+      "\n"
 #endif
-      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      R"(  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     Result result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
       "d."
 #endif
       R"(${vkCommand}( ${callArguments} ) );
-    return createResultValue( result, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
+    return createResultValue( result, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
     return replaceWithMap(
@@ -3671,7 +3715,8 @@ std::string VulkanHppGenerator::constructCommandResult( std::string const &     
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)" "\n"
+      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)"
+      "\n"
 #endif
       R"(    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
 
@@ -3703,10 +3748,11 @@ std::string VulkanHppGenerator::constructCommandResultEnumerate( std::string con
     constructArgumentListEnhanced( commandData.params, skippedParams, INVALID_INDEX, definition, withAllocator, false );
   std::string commandName = determineCommandName( name, commandData.params[0].type.type );
   std::string nodiscard = determineNoDiscard( 1 < commandData.successCodes.size(), 1 < commandData.errorCodes.size() );
-  std::string vectorElementType = ( commandData.params[vectorParamIndices.first].type.type == "void" )
-                                    ? "uint8_t"
-                                    : stripPrefix( commandData.params[vectorParamIndices.first].type.type, STRUCT_PREFIX );
-  std::string allocatorType     = startUpperCase( vectorElementType ) + "Allocator";
+  std::string vectorElementType =
+    ( commandData.params[vectorParamIndices.first].type.type == "void" )
+      ? "uint8_t"
+      : stripPrefix( commandData.params[vectorParamIndices.first].type.type, STRUCT_PREFIX );
+  std::string allocatorType = startUpperCase( vectorElementType ) + "Allocator";
 
   if ( definition )
   {
@@ -3715,7 +3761,9 @@ std::string VulkanHppGenerator::constructCommandResultEnumerate( std::string con
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch)"
 #endif
-      "${typenameCheck}>\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<std::vector<${vectorElementType}, ${allocatorType}>>::type ${className}${classSeparator}${commandName}( ${argumentList} )${const}
+      "${typenameCheck}>\n"
+      R"(  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE typename ResultValueType<std::vector<${vectorElementType}, ${allocatorType}>>::type ${className}${classSeparator}${commandName}( ${argumentList} )${const}
   {
     std::vector<${vectorElementType}, ${allocatorType}> ${vectorName}${vectorAllocator};
     ${counterType} ${counterName};
@@ -3742,7 +3790,8 @@ std::string VulkanHppGenerator::constructCommandResultEnumerate( std::string con
     {
       ${vectorName}.resize( ${counterName} );
     }
-    return createResultValue( result, ${vectorName}, )" HEADER_MACRO R"(_NAMESPACE_STRING"::${className}${classSeparator}${commandName}" );
+    return createResultValue( result, ${vectorName}, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING"::${className}${classSeparator}${commandName}" );
   })";
 
     std::string typenameCheck = withAllocator
@@ -3778,7 +3827,8 @@ std::string VulkanHppGenerator::constructCommandResultEnumerate( std::string con
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
 #endif
-      "${typenameCheck}>\n" R"(    ${nodiscard}typename ResultValueType<std::vector<${vectorElementType}, ${allocatorType}>>::type ${commandName}( ${argumentList} )${const};)";
+      "${typenameCheck}>\n"
+      R"(    ${nodiscard}typename ResultValueType<std::vector<${vectorElementType}, ${allocatorType}>>::type ${commandName}( ${argumentList} )${const};)";
 
     std::string typenameCheck = withAllocator ? ( ", typename B = " + allocatorType +
                                                   ", typename std::enable_if<std::is_same<typename B::value_type, " +
@@ -3827,7 +3877,9 @@ std::string
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch)"
 #endif
-      "${typenameCheck}>\n" R"(  {nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<std::vector<StructureChain, StructureChainAllocator>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      "${typenameCheck}>\n"
+      R"(  {nodiscard})" HEADER_MACRO
+      R"(_INLINE typename ResultValueType<std::vector<StructureChain, StructureChainAllocator>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     std::vector<StructureChain, StructureChainAllocator> returnVector${structureChainAllocator};
     std::vector<${vectorElementType}> ${vectorName};
@@ -3851,9 +3903,9 @@ std::string
         }
         result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${secondCallArguments} ) );
+      R"(${vkCommand}( ${secondCallArguments} ) );
         )" HEADER_MACRO R"(_ASSERT( ${counterName} <= ${vectorName}.size() );
       }
     } while ( result == Result::eIncomplete );
@@ -3866,7 +3918,8 @@ std::string
     {
       returnVector[i].template get<${vectorElementType}>() = ${vectorName}[i];
     }
-    return createResultValue( result, returnVector, )" HEADER_MACRO R"(_NAMESPACE_STRING"::${className}${classSeparator}${commandName}" );
+    return createResultValue( result, returnVector, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING"::${className}${classSeparator}${commandName}" );
   })";
 
     std::string vectorName = startLowerCase( stripPrefix( commandData.params[vectorParamIndex.first].name, "p" ) );
@@ -3901,7 +3954,8 @@ std::string
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
 #endif
-      "${typenameCheck}>\n" R"(  ${nodiscard}typename ResultValueType<std::vector<StructureChain, StructureChainAllocator>>::type ${commandName}( ${argumentList} ) const;)";
+      "${typenameCheck}>\n"
+      R"(  ${nodiscard}typename ResultValueType<std::vector<StructureChain, StructureChainAllocator>>::type ${commandName}( ${argumentList} ) const;)";
 
     std::string typenameCheck =
       withAllocator
@@ -3941,8 +3995,9 @@ std::string
     commandData.params, skippedParams, INVALID_INDEX, definition, withAllocators, false );
   std::string commandName = determineCommandName( name, commandData.params[0].type.type );
   std::string nodiscard = determineNoDiscard( 1 < commandData.successCodes.size(), 1 < commandData.errorCodes.size() );
-  std::string templateTypeFirst  = stripPrefix( commandData.params[firstVectorParamIt->first].type.type, STRUCT_PREFIX );
-  std::string templateTypeSecond = stripPrefix( commandData.params[secondVectorParamIt->first].type.type, STRUCT_PREFIX );
+  std::string templateTypeFirst = stripPrefix( commandData.params[firstVectorParamIt->first].type.type, STRUCT_PREFIX );
+  std::string templateTypeSecond =
+    stripPrefix( commandData.params[secondVectorParamIt->first].type.type, STRUCT_PREFIX );
 
   if ( definition )
   {
@@ -3951,7 +4006,9 @@ std::string
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch)"
 #endif
-      "${typenameCheck}>\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<std::pair<std::vector<${templateTypeFirst}, ${templateTypeFirst}Allocator>, std::vector<${templateTypeSecond}, ${templateTypeSecond}Allocator>>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      "${typenameCheck}>\n"
+      R"(  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE typename ResultValueType<std::pair<std::vector<${templateTypeFirst}, ${templateTypeFirst}Allocator>, std::vector<${templateTypeSecond}, ${templateTypeSecond}Allocator>>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     std::pair<std::vector<${templateTypeFirst}, ${templateTypeFirst}Allocator>, std::vector<${templateTypeSecond}, ${templateTypeSecond}Allocator>> data${pairConstructor};
     std::vector<${templateTypeFirst}, ${templateTypeFirst}Allocator> & ${firstVectorName} = data.first;
@@ -3962,18 +4019,18 @@ std::string
     {
       result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${firstCallArguments} ) );
+      R"(${vkCommand}( ${firstCallArguments} ) );
       if ( ( result == Result::eSuccess ) && counterCount )
       {
         ${firstVectorName}.resize( ${counterName} );
         ${secondVectorName}.resize( ${counterName} );
         result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${secondCallArguments} ) );
+      R"(${vkCommand}( ${secondCallArguments} ) );
         )" HEADER_MACRO R"(_ASSERT( ${counterName} <= ${firstVectorName}.size() );
       }
     } while ( result == Result::eIncomplete );
@@ -3982,7 +4039,8 @@ std::string
       ${firstVectorName}.resize( ${counterName} );
       ${secondVectorName}.resize( ${counterName} );
     }
-    return createResultValue( result, data, )" HEADER_MACRO R"(_NAMESPACE_STRING"::${className}${classSeparator}${commandName}" );
+    return createResultValue( result, data, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING"::${className}${classSeparator}${commandName}" );
   })";
 
     std::string pairConstructor =
@@ -4029,7 +4087,8 @@ std::string
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
 #endif
-      "${typenameCheck}>\n" R"(  ${nodiscard}typename ResultValueType<std::pair<std::vector<${templateTypeFirst}, ${templateTypeFirst}Allocator>, std::vector<${templateTypeSecond}, ${templateTypeSecond}Allocator>>>::type ${commandName}( ${argumentList} ) const;)";
+      "${typenameCheck}>\n"
+      R"(  ${nodiscard}typename ResultValueType<std::pair<std::vector<${templateTypeFirst}, ${templateTypeFirst}Allocator>, std::vector<${templateTypeSecond}, ${templateTypeSecond}Allocator>>>::type ${commandName}( ${argumentList} ) const;)";
 
     std::string typenameCheck =
       withAllocators
@@ -4071,8 +4130,10 @@ std::string VulkanHppGenerator::constructCommandResultEnumerateTwoVectorsDepreca
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch)"
 #endif
-      "${typeCheck}>\n  " HEADER_MACRO R"(_DEPRECATED( "This function is deprecated. Use one of the other flavours of it.")
-  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<${returnType}>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      "${typeCheck}>\n  " HEADER_MACRO
+      R"(_DEPRECATED( "This function is deprecated. Use one of the other flavours of it.")
+  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE typename ResultValueType<${returnType}>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     ${functionBody}
   })";
@@ -4082,24 +4143,25 @@ std::string VulkanHppGenerator::constructCommandResultEnumerateTwoVectorsDepreca
                                   templateType + ">::value, int>::type"
                               : "";
 
-    return replaceWithMap( functionTemplate,
-                           { { "argumentList", argumentList },
-                             { "className", commandData.handle.empty() ? "" : stripPrefix( commandData.handle, STRUCT_PREFIX ) },
-                             { "classSeparator", commandData.handle.empty() ? "" : "::" },
-                             { "commandName", commandName },
-                             { "functionBody",
-                               constructFunctionBodyEnhanced( "  ",
-                                                              name,
-                                                              commandData,
-                                                              returnParamIndex,
-                                                              returnParamIndex,
-                                                              vectorParamIndices,
-                                                              true,
-                                                              returnType,
-                                                              withAllocators ) },
-                             { "nodiscard", nodiscard },
-                             { "returnType", returnType },
-                             { "typeCheck", typeCheck } } );
+    return replaceWithMap(
+      functionTemplate,
+      { { "argumentList", argumentList },
+        { "className", commandData.handle.empty() ? "" : stripPrefix( commandData.handle, STRUCT_PREFIX ) },
+        { "classSeparator", commandData.handle.empty() ? "" : "::" },
+        { "commandName", commandName },
+        { "functionBody",
+          constructFunctionBodyEnhanced( "  ",
+                                         name,
+                                         commandData,
+                                         returnParamIndex,
+                                         returnParamIndex,
+                                         vectorParamIndices,
+                                         true,
+                                         returnType,
+                                         withAllocators ) },
+        { "nodiscard", nodiscard },
+        { "returnType", returnType },
+        { "typeCheck", typeCheck } } );
   }
   else
   {
@@ -4108,7 +4170,8 @@ std::string VulkanHppGenerator::constructCommandResultEnumerateTwoVectorsDepreca
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch  = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE${typeCheck})"
 #endif
-      ">\n" R"(  ${nodiscard}typename ResultValueType<${returnType}>::type ${commandName}( ${argumentList} ) const;)";
+      ">\n"
+      R"(  ${nodiscard}typename ResultValueType<${returnType}>::type ${commandName}( ${argumentList} ) const;)";
 
     std::string typeCheck =
       withAllocators ? ", typename B = Allocator, typename std::enable_if<std::is_same<typename B::value_type, " +
@@ -4130,7 +4193,8 @@ std::string VulkanHppGenerator::constructCommandResultGetChain( std::string cons
                                                                 bool                definition,
                                                                 size_t              nonConstPointerIndex ) const
 {
-  assert( !commandData.handle.empty() && ( commandData.returnType == STRUCT_PREFIX "Result" ) && !commandData.errorCodes.empty() );
+  assert( !commandData.handle.empty() && ( commandData.returnType == STRUCT_PREFIX "Result" ) &&
+          !commandData.errorCodes.empty() );
 
   std::set<size_t> skippedParams =
     determineSkippedParams( commandData.handle, commandData.params, {}, { nonConstPointerIndex }, false );
@@ -4150,16 +4214,18 @@ std::string VulkanHppGenerator::constructCommandResultGetChain( std::string cons
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch)"
 #endif
-      ">\n  " HEADER_MACRO R"(_NODISCARD_WHEN_NO_EXCEPTIONS )" HEADER_MACRO R"(_INLINE typename ResultValueType<StructureChain<X, Y, Z...>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      ">\n  " HEADER_MACRO R"(_NODISCARD_WHEN_NO_EXCEPTIONS )" HEADER_MACRO
+      R"(_INLINE typename ResultValueType<StructureChain<X, Y, Z...>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     StructureChain<X, Y, Z...> structureChain;
     ${returnType} & ${returnVariable} = structureChain.template get<${returnType}>();
     Result result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${callArguments} ) );
-    return createResultValue( result, structureChain, )" HEADER_MACRO R"(_NAMESPACE_STRING"::${className}${classSeparator}${commandName}"${successCodeList} );
+      R"(${vkCommand}( ${callArguments} ) );
+    return createResultValue( result, structureChain, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING"::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
     return replaceWithMap(
@@ -4182,7 +4248,8 @@ std::string VulkanHppGenerator::constructCommandResultGetChain( std::string cons
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
 #endif
-      ">\n  " HEADER_MACRO R"(_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<StructureChain<X, Y, Z...>>::type ${commandName}( ${argumentList} ) const;)";
+      ">\n  " HEADER_MACRO
+      R"(_NODISCARD_WHEN_NO_EXCEPTIONS typename ResultValueType<StructureChain<X, Y, Z...>>::type ${commandName}( ${argumentList} ) const;)";
 
     return replaceWithMap( functionTemplate, { { "argumentList", argumentList }, { "commandName", commandName } } );
   }
@@ -4210,7 +4277,8 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch>)" "\n"
+      R"(  template <typename Dispatch>)"
+      "\n"
 #endif
       R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<UniqueHandle<${returnBaseType})"
 #ifdef NEEDS_DISPATCH
@@ -4221,9 +4289,9 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
     ${returnBaseType} ${returnValueName};
     Result result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${callArguments} ) );
+      R"(${vkCommand}( ${callArguments} ) );
     ${ObjectDeleter}<${parentName})"
 #ifdef NEEDS_DISPATCH
       ", Dispatch"
@@ -4233,14 +4301,15 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
 #ifdef NEEDS_DISPATCH
       ", Dispatch"
 #endif
-      R"(>( result, ${returnValueName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}Unique", deleter );
+      R"(>( result, ${returnValueName}, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}Unique", deleter );
   })";
 
     std::string objectDeleter, allocator;
     if ( ( name.find( "Acquire" ) != std::string::npos ) || ( name.find( "Get" ) != std::string::npos ) )
     {
-      if ( ( name == COMMAND_PREFIX "AcquirePerformanceConfigurationINTEL" ) || ( name == COMMAND_PREFIX "GetRandROutputDisplayEXT" ) ||
-           ( name == COMMAND_PREFIX "GetWinrtDisplayNV" ) )
+      if ( ( name == COMMAND_PREFIX "AcquirePerformanceConfigurationINTEL" ) ||
+           ( name == COMMAND_PREFIX "GetRandROutputDisplayEXT" ) || ( name == COMMAND_PREFIX "GetWinrtDisplayNV" ) )
       {
         objectDeleter = "ObjectRelease";
       }
@@ -4264,8 +4333,9 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
     }
     std::string className = commandData.handle.empty() ? "" : stripPrefix( commandData.handle, STRUCT_PREFIX );
     std::string parentName =
-      ( className.empty() || ( commandData.params[nonConstPointerIndex].type.type == STRUCT_PREFIX "Device" ) ) ? "NoParent"
-                                                                                                    : className;
+      ( className.empty() || ( commandData.params[nonConstPointerIndex].type.type == STRUCT_PREFIX "Device" ) )
+        ? "NoParent"
+        : className;
     std::string deleterParameters = ( parentName == "NoParent" ) ? "" : "*this";
     if ( !allocator.empty() )
       if ( deleterParameters.empty() )
@@ -4300,7 +4370,8 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)" ">\n"
+      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+      ">\n"
 #endif
       R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<UniqueHandle<${returnBaseType})"
 #ifdef NEEDS_DISPATCH
@@ -4341,22 +4412,26 @@ std::string
     constructArgumentListEnhanced( commandData.params, skippedParameters, INVALID_INDEX, definition, false, false );
   std::string commandName = determineCommandName( name, commandData.params[0].type.type );
   std::pair<bool, std::map<size_t, std::vector<size_t>>> vectorSizeCheck = needsVectorSizeCheck( vectorParamIndices );
-  std::string noexceptString = vectorSizeCheck.first ? HEADER_MACRO "_NOEXCEPT_WHEN_NO_EXCEPTIONS" : HEADER_MACRO "_NOEXCEPT";
+  std::string                                            noexceptString =
+    vectorSizeCheck.first ? HEADER_MACRO "_NOEXCEPT_WHEN_NO_EXCEPTIONS" : HEADER_MACRO "_NOEXCEPT";
 
   if ( definition )
   {
     const std::string functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch>)" "\n"
+      R"(  template <typename Dispatch>)"
+      "\n"
 #endif
-      "  " HEADER_MACRO R"(_INLINE Result ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
+      "  " HEADER_MACRO
+      R"(_INLINE Result ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
   {${vectorSizeCheck}
     Result result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${callArguments} ) );
-    return createResultValue( result, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
+      R"(${vkCommand}( ${callArguments} ) );
+    return createResultValue( result, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
     return replaceWithMap(
@@ -4378,7 +4453,8 @@ std::string
   {
     const std::string functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)" "\n"
+      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)"
+      "\n"
 #endif
       R"(    Result ${commandName}( ${argumentList} ) const ${noexcept};)";
 
@@ -4414,17 +4490,20 @@ std::string VulkanHppGenerator::constructCommandResultGetValue( std::string cons
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch>)" "\n"
+      R"(  template <typename Dispatch>)"
+      "\n"
 #endif
-      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} )${const}
+      R"(  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} )${const}
   {
     ${returnBaseType} ${returnValueName};
     Result result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${callArguments} ) );
-    return createResultValue( result, ${returnValueName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
+      R"(${vkCommand}( ${callArguments} ) );
+    return createResultValue( result, ${returnValueName}, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
     return replaceWithMap(
@@ -4447,7 +4526,8 @@ std::string VulkanHppGenerator::constructCommandResultGetValue( std::string cons
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)" "\n"
+      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)"
+      "\n"
 #endif
       R"(    ${nodiscard}${returnType} ${commandName}( ${argumentList} )${const};)";
 
@@ -4482,10 +4562,12 @@ std::string
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch>)" "\n"
+      R"(  template <typename Dispatch>)"
+      "\n"
 #endif
       "  " HEADER_MACRO R"(_DEPRECATED( "This function is deprecated. Use one of the other flavours of it.")
-  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<${returnType}>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
+  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE typename ResultValueType<${returnType}>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     ${functionBody}
   })";
@@ -4506,7 +4588,8 @@ std::string
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)" "\n"
+      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)"
+      "\n"
 #endif
       R"(    ${nodiscard}typename ResultValueType<${returnType}>::type ${commandName}( ${argumentList} ) const;)";
 
@@ -4542,16 +4625,19 @@ std::string VulkanHppGenerator::constructCommandResultGetVector( std::string con
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch)"
 #endif
-      ">\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      ">\n"
+      R"(  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     )" HEADER_MACRO R"(_ASSERT( ${dataSize} % sizeof( T ) == 0 );
     std::vector<T,Allocator> ${dataName}( ${dataSize} / sizeof( T ) );
     Result result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${callArguments} ) );
-    return createResultValue( result, ${dataName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
+      R"(${vkCommand}( ${callArguments} ) );
+    return createResultValue( result, ${dataName}, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
     return replaceWithMap(
@@ -4571,12 +4657,12 @@ std::string VulkanHppGenerator::constructCommandResultGetVector( std::string con
   }
   else
   {
-    std::string const functionTemplate =
-      R"(    template <typename T, typename Allocator = std::allocator<T>)"
+    std::string const functionTemplate = R"(    template <typename T, typename Allocator = std::allocator<T>)"
 #ifdef NEEDS_DISPATCH
-      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+                                         R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
 #endif
-      ">\n" R"(    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
+                                         ">\n"
+                                         R"(    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -4623,17 +4709,20 @@ std::string
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch)"
 #endif
-      "${typenameCheck}>\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE typename ResultValueType<std::pair<std::vector<${vectorElementType}, ${allocatorType}>, ${valueType}>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      "${typenameCheck}>\n"
+      R"(  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE typename ResultValueType<std::pair<std::vector<${vectorElementType}, ${allocatorType}>, ${valueType}>>::type ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     std::pair<std::vector<${vectorElementType}, ${allocatorType}>,${valueType}> data( std::piecewise_construct, std::forward_as_tuple( ${vectorSize}${allocateInitializer} ), std::forward_as_tuple( 0 ) );
     std::vector<${vectorElementType}, ${allocatorType}> & ${vectorName} = data.first;
     ${valueType} & ${valueName} = data.second;
     Result result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${callArguments} ) );
-    return createResultValue( result, data, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
+      R"(${vkCommand}( ${callArguments} ) );
+    return createResultValue( result, data, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
     std::string typenameCheck = withAllocator
@@ -4670,7 +4759,8 @@ std::string
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
 #endif
-      "${typenameCheck}>\n" R"(    ${nodiscard}typename ResultValueType<std::pair<std::vector<${vectorElementType}, ${allocatorType}>, ${valueType}>>::type ${commandName}( ${argumentList} ) const;)";
+      "${typenameCheck}>\n"
+      R"(    ${nodiscard}typename ResultValueType<std::pair<std::vector<${vectorElementType}, ${allocatorType}>, ${valueType}>>::type ${commandName}( ${argumentList} ) const;)";
 
     std::string typenameCheck = withAllocator ? ( ", typename B = " + allocatorType +
                                                   ", typename std::enable_if<std::is_same<typename B::value_type, " +
@@ -4711,7 +4801,8 @@ std::string
       R"(, typename Dispatch)"
 #endif
       ">\n  " HEADER_MACRO R"(_DEPRECATED( "This function is deprecated. Use one of the other flavours of it.")
-  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
+  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     ${functionBody}
   })";
@@ -4730,12 +4821,12 @@ std::string
   }
   else
   {
-    std::string const functionTemplate =
-      R"(    template <typename T)"
+    std::string const functionTemplate = R"(    template <typename T)"
 #ifdef NEEDS_DISPATCH
-      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+                                         R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
 #endif
-      ">\n" R"(    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
+                                         ">\n"
+                                         R"(    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -4775,15 +4866,18 @@ std::string
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch)"
 #endif
-      "${typenameCheck}>\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      "${typenameCheck}>\n"
+      R"(  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     std::vector<${handleType}, ${handleType}Allocator> ${vectorName}( ${vectorSize}${vectorAllocator} );
     Result result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${callArguments} ) );
-    return createResultValue( result, ${vectorName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
+      R"(${vkCommand}( ${callArguments} ) );
+    return createResultValue( result, ${vectorName}, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
     std::string typenameCheck = withAllocator
@@ -4817,7 +4911,8 @@ std::string
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
 #endif
-      "${typenameCheck}>\n" R"(    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
+      "${typenameCheck}>\n"
+      R"(    ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
 
     std::string typenameCheck = withAllocator
                                   ? ( ", typename B = " + handleType +
@@ -4865,17 +4960,20 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesSingular
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch>)" "\n"
+      R"(  template <typename Dispatch>)"
+      "\n"
 #endif
-      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      R"(  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     ${handleType} ${handleName};
     Result result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${callArguments} ) );
-    return createResultValue( result, ${handleName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
+      R"(${vkCommand}( ${callArguments} ) );
+    return createResultValue( result, ${handleName}, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
     return replaceWithMap(
@@ -4898,7 +4996,8 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesSingular
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)" "\n"
+      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)"
+      "\n"
 #endif
       R"(  ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
 
@@ -4928,18 +5027,17 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
   std::string commandName = determineCommandName( name, commandData.params[0].type.type );
   std::string nodiscard  = determineNoDiscard( 1 < commandData.successCodes.size(), 1 < commandData.errorCodes.size() );
   std::string handleType = stripPrefix( commandData.params[returnParamIndex].type.type, STRUCT_PREFIX );
-  std::string returnType =
-    ( commandData.successCodes.size() == 1 )
-      ? ( "typename ResultValueType<std::vector<UniqueHandle<" + handleType +
+  std::string returnType = ( commandData.successCodes.size() == 1 )
+                             ? ( "typename ResultValueType<std::vector<UniqueHandle<" + handleType +
 #ifdef NEEDS_DISPATCH
-        ", Dispatch" +
+                                 ", Dispatch" +
 #endif
-        ">, " + handleType + "Allocator>>::type" )
-      : ( "ResultValue<std::vector<UniqueHandle<" + handleType +
+                                 ">, " + handleType + "Allocator>>::type" )
+                             : ( "ResultValue<std::vector<UniqueHandle<" + handleType +
 #ifdef NEEDS_DISPATCH
-        ", Dispatch" +
+                                 ", Dispatch" +
 #endif
-        ">, " + handleType + "Allocator>>" );
+                                 ">, " + handleType + "Allocator>>" );
 
   if ( definition )
   {
@@ -4949,19 +5047,20 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
       R"(typename Dispatch, )"
 #endif
       R"(typename ${handleType}Allocator${typenameCheck}>
-  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}Unique( ${argumentList} ) const
+  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}Unique( ${argumentList} ) const
   {
     std::vector<UniqueHandle<${handleType})"
 #ifdef NEEDS_DISPATCH
-        ", Dispatch"
+      ", Dispatch"
 #endif
       R"(>, ${handleType}Allocator> ${uniqueVectorName}${vectorAllocator};
     std::vector<${handleType}> ${vectorName}( ${vectorSize} );
     Result result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${callArguments} ) );
+      R"(${vkCommand}( ${callArguments} ) );
     if ( ${successCheck} )
     {
       ${uniqueVectorName}.reserve( ${vectorSize} );
@@ -4970,12 +5069,13 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
       {
         ${uniqueVectorName}.push_back( UniqueHandle<${handleType})"
 #ifdef NEEDS_DISPATCH
-        ", Dispatch"
+      ", Dispatch"
 #endif
       R"(>( ${vectorName}[i], deleter ) );
       }
     }
-    return createResultValue( result, std::move( ${uniqueVectorName} ), )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}Unique"${successCodeList} );
+    return createResultValue( result, std::move( ${uniqueVectorName} ), )" HEADER_MACRO
+      R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}Unique"${successCodeList} );
   })";
 
     std::string className = commandData.handle.empty() ? "" : stripPrefix( commandData.handle, STRUCT_PREFIX );
@@ -4984,15 +5084,17 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
     std::vector<std::string> lenParts = tokenize( commandData.params[returnParamIndex].len, "->" );
     switch ( lenParts.size() )
     {
-      case 1: deleterDefinition = "ObjectDestroy<" + className +
+      case 1:
+        deleterDefinition = "ObjectDestroy<" + className +
 #ifdef NEEDS_DISPATCH
-        ", Dispatch" +
+                            ", Dispatch" +
 #endif
-        "> deleter( *this, allocator"
+                            "> deleter( *this, allocator"
 #ifdef NEEDS_DISPATCH
-        ", d"
+                            ", d"
 #endif
-        " )"; break;
+                            " )";
+        break;
       case 2:
       {
         auto vpiIt = vectorParamIndices.find( returnParamIndex );
@@ -5003,28 +5105,27 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
         poolType = stripPrefix( poolType, STRUCT_PREFIX );
         poolName = startLowerCase( stripPrefix( lenParts[0], "p" ) ) + "." + poolName;
 
-        deleterDefinition =
-          "PoolFree<" + className + ", " + poolType +
+        deleterDefinition = "PoolFree<" + className + ", " + poolType +
 #ifdef NEEDS_DISPATCH
-          ", Dispatch" +
+                            ", Dispatch" +
 #endif
-          "> deleter( *this, " + poolName +
+                            "> deleter( *this, " + poolName +
 #ifdef NEEDS_DISPATCH
-          ", d"
+                            ", d"
 #endif
-          " )";
+                            " )";
       }
       break;
     }
 
     std::string typenameCheck =
-      withAllocator ? ( ", typename B, typename std::enable_if<std::is_same<typename B::value_type, UniqueHandle<" +
-                        handleType +
+      withAllocator
+        ? ( ", typename B, typename std::enable_if<std::is_same<typename B::value_type, UniqueHandle<" + handleType +
 #ifdef NEEDS_DISPATCH
-                        ", Dispatch" +
+            ", Dispatch" +
 #endif
-                        ">>::value, int>::type " )
-                    : "";
+            ">>::value, int>::type " )
+        : "";
     std::string vectorName = startLowerCase( stripPrefix( commandData.params[returnParamIndex].name, "p" ) );
 
     return replaceWithMap(
@@ -5053,7 +5154,8 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
     std::string const functionTemplate =
       "    template <"
 #ifdef NEEDS_DISPATCH
-      "typename Dispatch = " HEADER_MACRO "_DEFAULT_DISPATCHER_TYPE, "
+      "typename Dispatch = " HEADER_MACRO
+      "_DEFAULT_DISPATCHER_TYPE, "
 #endif
       "typename ${handleType}Allocator = std::allocator<UniqueHandle<${handleType}"
 #ifdef NEEDS_DISPATCH
@@ -5063,14 +5165,14 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
       "    ${nodiscard}${returnType} ${commandName}Unique( ${argumentList} ) const;";
 
     std::string typenameCheck =
-      withAllocator ? ( ", typename B = " + handleType +
-                        "Allocator, typename std::enable_if<std::is_same<typename B::value_type, UniqueHandle<" +
-                        handleType +
+      withAllocator
+        ? ( ", typename B = " + handleType +
+            "Allocator, typename std::enable_if<std::is_same<typename B::value_type, UniqueHandle<" + handleType +
 #ifdef NEEDS_DISPATCH
-                        ", Dispatch" +
+            ", Dispatch" +
 #endif
-                        ">>::value, int>::type = 0" )
-                    : "";
+            ">>::value, int>::type = 0" )
+        : "";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -5107,43 +5209,46 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUniqueSi
   std::string returnType = ( commandData.successCodes.size() == 1 )
                              ? ( "typename ResultValueType<UniqueHandle<" + handleType +
 #ifdef NEEDS_DISPATCH
-                               ", Dispatch" +
+                                 ", Dispatch" +
 #endif
-                               ">>::type" )
+                                 ">>::type" )
                              : ( "ResultValue<UniqueHandle<" + handleType +
 #ifdef NEEDS_DISPATCH
-                               ", Dispatch" +
+                                 ", Dispatch" +
 #endif
-                               ">>" );
+                                 ">>" );
 
   if ( definition )
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch>)" "\n"
+      R"(  template <typename Dispatch>)"
+      "\n"
 #endif
-      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}Unique( ${argumentList} ) const
+      R"(  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}Unique( ${argumentList} ) const
   {
     ${handleType} ${handleName};
     Result result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${callArguments} ) );
+      R"(${vkCommand}( ${callArguments} ) );
     ObjectDestroy<${className})"
 #ifdef NEEDS_DISPATCH
       ", Dispatch"
 #endif
       R"(> deleter( *this, allocator)"
 #ifdef NEEDS_DISPATCH
-        ", d"
+      ", d"
 #endif
-        R"( );
+      R"( );
     return createResultValue<${handleType})"
 #ifdef NEEDS_DISPATCH
       ", Dispatch"
 #endif
-      R"(>( result, ${handleName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}Unique"${successCodeList}, deleter );
+      R"(>( result, ${handleName}, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}Unique"${successCodeList}, deleter );
   })";
 
     return replaceWithMap(
@@ -5166,7 +5271,8 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUniqueSi
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)" "\n"
+      R"(    template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE>)"
+      "\n"
 #endif
       R"(    ${nodiscard}${returnType} ${commandName}Unique( ${argumentList} ) const;)";
 
@@ -5205,15 +5311,18 @@ std::string
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch)"
 #endif
-      ">\n" R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      ">\n"
+      R"(  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     T ${dataName};
     Result result = static_cast<Result>( )"
 #ifdef NEEDS_DISPATCH
-        "d."
+      "d."
 #endif
-        R"(${vkCommand}( ${callArguments} ) );
-    return createResultValue( result, ${dataName}, )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
+      R"(${vkCommand}( ${callArguments} ) );
+    return createResultValue( result, ${dataName}, )" HEADER_MACRO
+      R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}"${successCodeList} );
   })";
 
     return replaceWithMap(
@@ -5232,12 +5341,12 @@ std::string
   }
   else
   {
-    std::string const functionTemplate =
-      R"(  template <typename T)"
+    std::string const functionTemplate = R"(  template <typename T)"
 #ifdef NEEDS_DISPATCH
-      R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+                                         R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
 #endif
-      ">\n" R"(  ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
+                                         ">\n"
+                                         R"(  ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const;)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -5277,28 +5386,33 @@ std::string VulkanHppGenerator::constructCommandStandard( std::string const & na
 
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch>)" "\n"
+      R"(  template <typename Dispatch>)"
+      "\n"
 #endif
-      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} )${const} )" HEADER_MACRO R"(_NOEXCEPT
+      R"(  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} )${const} )" HEADER_MACRO
+      R"(_NOEXCEPT
   {
     ${functionBody};
   })";
 
-    return replaceWithMap( functionTemplate,
-                           { { "argumentList", argumentList },
-                             { "className", commandData.handle.empty() ? "" : stripPrefix( commandData.handle, STRUCT_PREFIX ) },
-                             { "classSeparator", commandData.handle.empty() ? "" : "::" },
-                             { "commandName", commandName },
-                             { "const", commandData.handle.empty() ? "" : " const" },
-                             { "functionBody", functionBody },
-                             { "nodiscard", nodiscard },
-                             { "returnType", returnType } } );
+    return replaceWithMap(
+      functionTemplate,
+      { { "argumentList", argumentList },
+        { "className", commandData.handle.empty() ? "" : stripPrefix( commandData.handle, STRUCT_PREFIX ) },
+        { "classSeparator", commandData.handle.empty() ? "" : "::" },
+        { "commandName", commandName },
+        { "const", commandData.handle.empty() ? "" : " const" },
+        { "functionBody", functionBody },
+        { "nodiscard", nodiscard },
+        { "returnType", returnType } } );
   }
   else
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)" ">\n"
+      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+      ">\n"
 #endif
       R"(  ${nodiscard}${returnType} ${commandName}( ${argumentList} )"
 #ifdef NEEDS_DISPATCH
@@ -5334,9 +5448,12 @@ std::string VulkanHppGenerator::constructCommandType( std::string const & name,
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch>)" "\n"
+      R"(  template <typename Dispatch>)"
+      "\n"
 #endif
-      R"(  ${nodiscard})" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT
+      R"(  ${nodiscard})" HEADER_MACRO
+      R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const )" HEADER_MACRO
+      R"(_NOEXCEPT
   {
     return )"
 #ifdef NEEDS_DISPATCH
@@ -5360,7 +5477,8 @@ std::string VulkanHppGenerator::constructCommandType( std::string const & name,
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)" ">\n"
+      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+      ">\n"
 #endif
       R"(  ${nodiscard}${returnType} ${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT;)";
 
@@ -5390,7 +5508,8 @@ std::string VulkanHppGenerator::constructCommandVoid( std::string const &       
                               ? "typename T, "
                               : "";
   std::pair<bool, std::map<size_t, std::vector<size_t>>> vectorSizeCheck = needsVectorSizeCheck( vectorParamIndices );
-  std::string noexceptString = vectorSizeCheck.first ? HEADER_MACRO "_NOEXCEPT_WHEN_NO_EXCEPTIONS" : HEADER_MACRO "_NOEXCEPT";
+  std::string                                            noexceptString =
+    vectorSizeCheck.first ? HEADER_MACRO "_NOEXCEPT_WHEN_NO_EXCEPTIONS" : HEADER_MACRO "_NOEXCEPT";
 
   if ( definition )
   {
@@ -5399,7 +5518,8 @@ std::string VulkanHppGenerator::constructCommandVoid( std::string const &       
 #ifdef NEEDS_DISPATCH
       R"(typename Dispatch)"
 #endif
-      ">\n  " HEADER_MACRO R"(_INLINE void ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
+      ">\n  " HEADER_MACRO
+      R"(_INLINE void ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
   {${vectorSizeCheck}
     )"
 #ifdef NEEDS_DISPATCH
@@ -5425,12 +5545,12 @@ std::string VulkanHppGenerator::constructCommandVoid( std::string const &       
   }
   else
   {
-    std::string const functionTemplate =
-      R"(  template <${typenameT})"
+    std::string const functionTemplate = R"(  template <${typenameT})"
 #ifdef NEEDS_DISPATCH
-      R"(typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+                                         R"(typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
 #endif
-      ">\n" R"(void ${commandName}( ${argumentList} ) const ${noexcept};)";
+                                         ">\n"
+                                         R"(void ${commandName}( ${argumentList} ) const ${noexcept};)";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
@@ -5465,7 +5585,8 @@ std::string VulkanHppGenerator::constructCommandVoidEnumerate( std::string const
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch)"
 #endif
-      "${typenameCheck}>\n  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE std::vector<${vectorElementType}, ${vectorElementType}Allocator> ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      "${typenameCheck}>\n  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO
+      R"(_INLINE std::vector<${vectorElementType}, ${vectorElementType}Allocator> ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     std::vector<${vectorElementType}, ${vectorElementType}Allocator> ${vectorName}${vectorAllocator};
     ${counterType} ${counterName};
@@ -5505,7 +5626,8 @@ std::string VulkanHppGenerator::constructCommandVoidEnumerate( std::string const
         { "typenameCheck", typenameCheck },
         { "vectorAllocator",
           withAllocators
-            ? ( "( " + startLowerCase( stripPrefix( commandData.params[vectorParamIndex.first].type.type, STRUCT_PREFIX ) ) +
+            ? ( "( " +
+                startLowerCase( stripPrefix( commandData.params[vectorParamIndex.first].type.type, STRUCT_PREFIX ) ) +
                 "Allocator )" )
             : "" },
         { "vectorElementType", vectorElementType },
@@ -5519,7 +5641,8 @@ std::string VulkanHppGenerator::constructCommandVoidEnumerate( std::string const
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
 #endif
-      "${typenameCheck}>\n  " HEADER_MACRO R"(_NODISCARD std::vector<${vectorElementType}, ${vectorElementType}Allocator> ${commandName}( ${argumentList} ) const;)";
+      "${typenameCheck}>\n  " HEADER_MACRO
+      R"(_NODISCARD std::vector<${vectorElementType}, ${vectorElementType}Allocator> ${commandName}( ${argumentList} ) const;)";
 
     std::string typenameCheck = withAllocators
                                   ? ( ", typename B = " + vectorElementType +
@@ -5563,7 +5686,8 @@ std::string
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch)"
 #endif
-      "${typenameCheck}>\n  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE std::vector<StructureChain, StructureChainAllocator> ${className}${classSeparator}${commandName}( ${argumentList} ) const
+      "${typenameCheck}>\n  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO
+      R"(_INLINE std::vector<StructureChain, StructureChainAllocator> ${className}${classSeparator}${commandName}( ${argumentList} ) const
   {
     ${counterType} ${counterName};
     )"
@@ -5622,7 +5746,8 @@ std::string
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
 #endif
-      "${typenameCheck}>\n  " HEADER_MACRO R"(_NODISCARD std::vector<StructureChain, StructureChainAllocator> ${commandName}( ${argumentList} ) const;)";
+      "${typenameCheck}>\n  " HEADER_MACRO
+      R"(_NODISCARD std::vector<StructureChain, StructureChainAllocator> ${commandName}( ${argumentList} ) const;)";
 
     std::string typenameCheck =
       withAllocators
@@ -5660,7 +5785,9 @@ std::string VulkanHppGenerator::constructCommandVoidGetChain( std::string const 
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch)"
 #endif
-      ">\n  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE StructureChain<X, Y, Z...> ${className}${classSeparator}${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT
+      ">\n  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO
+      R"(_INLINE StructureChain<X, Y, Z...> ${className}${classSeparator}${commandName}( ${argumentList} ) const )" HEADER_MACRO
+      R"(_NOEXCEPT
   {
     StructureChain<X, Y, Z...> structureChain;
     ${returnType} & ${returnVariable} = structureChain.template get<${returnType}>();
@@ -5691,7 +5818,8 @@ std::string VulkanHppGenerator::constructCommandVoidGetChain( std::string const 
 #ifdef NEEDS_DISPATCH
       R"(, typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
 #endif
-      ">\n  " HEADER_MACRO R"(_NODISCARD StructureChain<X, Y, Z...> ${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT;)";
+      ">\n  " HEADER_MACRO
+      R"(_NODISCARD StructureChain<X, Y, Z...> ${commandName}( ${argumentList} ) const )" HEADER_MACRO R"(_NOEXCEPT;)";
 
     return replaceWithMap( functionTemplate, { { "argumentList", argumentList }, { "commandName", commandName } } );
   }
@@ -5728,7 +5856,8 @@ std::string VulkanHppGenerator::constructCommandVoidGetValue( std::string const 
   bool needsVectorSizeCheck =
     !vectorParamIndices.empty() && isLenByStructMember( commandData.params[vectorParamIndices.begin()->first].len,
                                                         commandData.params[vectorParamIndices.begin()->second] );
-  std::string noexceptString = needsVectorSizeCheck ? HEADER_MACRO "_NOEXCEPT_WHEN_NO_EXCEPTIONS" : HEADER_MACRO "_NOEXCEPT";
+  std::string noexceptString =
+    needsVectorSizeCheck ? HEADER_MACRO "_NOEXCEPT_WHEN_NO_EXCEPTIONS" : HEADER_MACRO "_NOEXCEPT";
 
   if ( definition )
   {
@@ -5745,7 +5874,8 @@ std::string VulkanHppGenerator::constructCommandVoidGetValue( std::string const 
 #else
     if ( ${vectorName}.size() != ${sizeValue} )
     {
-      throw LogicError( )" HEADER_MACRO R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}: ${vectorName}.size() != ${sizeValue}" );
+      throw LogicError( )" HEADER_MACRO
+        R"(_NAMESPACE_STRING "::${className}${classSeparator}${commandName}: ${vectorName}.size() != ${sizeValue}" );
     }
 #endif /*)" HEADER_MACRO R"(_NO_EXCEPTIONS*/)";
       std::vector<std::string> lenParts = tokenize( commandData.params[vectorParamIndices.begin()->first].len, "->" );
@@ -5763,9 +5893,11 @@ std::string VulkanHppGenerator::constructCommandVoidGetValue( std::string const 
 
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch)" ">\n"
+      R"(  template <typename Dispatch)"
+      ">\n"
 #endif
-      "  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
+      "  " HEADER_MACRO R"(_NODISCARD )" HEADER_MACRO
+      R"(_INLINE ${returnType} ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
   {${vectorSizeCheck}
     ${returnType} ${returnVariable};
     )"
@@ -5794,7 +5926,8 @@ std::string VulkanHppGenerator::constructCommandVoidGetValue( std::string const 
   {
     std::string const functionTemplate =
 #ifdef NEEDS_DISPATCH
-      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)" ">\n"
+      R"(  template <typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+      ">\n"
 #endif
       "  " HEADER_MACRO R"(_NODISCARD ${returnType} ${commandName}( ${argumentList} ) const ${noexcept};)";
 
@@ -5810,7 +5943,8 @@ std::string
   VulkanHppGenerator::constructConstexprString( std::pair<std::string, StructureData> const & structData ) const
 {
   // structs with a union (and <STRUCT_PREFIX>BaseInStructure and <STRUCT_PREFIX>BaseOutStructure) can't be a constexpr!
-  bool isConstExpression = !containsUnion( structData.first ) && ( structData.first != STRUCT_PREFIX "BaseInStructure" ) &&
+  bool isConstExpression = !containsUnion( structData.first ) &&
+                           ( structData.first != STRUCT_PREFIX "BaseInStructure" ) &&
                            ( structData.first != STRUCT_PREFIX "BaseOutStructure" );
   return isConstExpression
            ? ( std::string( HEADER_MACRO "_CONSTEXPR" ) + ( containsArray( structData.first ) ? "_14 " : " " ) )
@@ -5926,7 +6060,7 @@ std::string
     str += " " HEADER_MACRO "_DEFAULT_DISPATCHER_ASSIGNMENT";
   }
 #else
-  static_cast<void>(withDefaults);
+  static_cast<void>( withDefaults );
 #endif
   str += " ";
   return str;
@@ -5948,7 +6082,8 @@ std::string VulkanHppGenerator::constructReturnType( CommandData const & command
 std::string VulkanHppGenerator::constructSuccessCheck( std::vector<std::string> const & successCodes ) const
 {
   assert( !successCodes.empty() );
-  std::string successCheck = "result == " HEADER_MACRO "_NAMESPACE::Result::" + createSuccessCode( successCodes[0], m_tags );
+  std::string successCheck =
+    "result == " HEADER_MACRO "_NAMESPACE::Result::" + createSuccessCode( successCodes[0], m_tags );
   if ( 1 < successCodes.size() )
   {
     successCheck = "( " + successCheck + " )";
@@ -5989,7 +6124,8 @@ std::string
   std::string const throwTemplate =
     R"#(    if ( ${zeroSizeCheck}${firstVectorName}.size() != ${secondVectorName}.size() )
   {
-    throw LogicError( )#" HEADER_MACRO R"#(_NAMESPACE_STRING "::${className}::${commandName}: ${firstVectorName}.size() != ${secondVectorName}.size()" );
+    throw LogicError( )#" HEADER_MACRO
+    R"#(_NAMESPACE_STRING "::${className}::${commandName}: ${firstVectorName}.size() != ${secondVectorName}.size()" );
   })#";
 
   std::string commandName = determineCommandName( name, commandData.params[0].type.type );
@@ -6140,9 +6276,12 @@ void VulkanHppGenerator::appendStructConstructorsEnhanced( std::string &        
         if ( litit != lenIts.end() )
         {
           // len arguments just have an initalizer, from the ArrayProxyNoTemporaries size
-          initializers +=
-            ( firstArgument ? ": " : ", " ) + mit->name + "( " + generateLenInitializer( mit, litit, structData.second.mutualExclusiveLens ) + " )";
-          sizeChecks += generateSizeCheck( litit->second, stripPrefix( structData.first, STRUCT_PREFIX ), prefix, structData.second.mutualExclusiveLens );
+          initializers += ( firstArgument ? ": " : ", " ) + mit->name + "( " +
+                          generateLenInitializer( mit, litit, structData.second.mutualExclusiveLens ) + " )";
+          sizeChecks += generateSizeCheck( litit->second,
+                                           stripPrefix( structData.first, STRUCT_PREFIX ),
+                                           prefix,
+                                           structData.second.mutualExclusiveLens );
         }
         else if ( std::find( memberIts.begin(), memberIts.end(), mit ) != memberIts.end() )
         {
@@ -6331,7 +6470,8 @@ void VulkanHppGenerator::appendStructSetter( std::string &                   str
                                              size_t                          index ) const
 {
   MemberData const & member = memberData[index];
-  if ( member.type.type != STRUCT_PREFIX "StructureType" )  // filter out StructureType, which is supposed to be immutable !
+  if ( member.type.type != STRUCT_PREFIX
+       "StructureType" )  // filter out StructureType, which is supposed to be immutable !
   {
     static const std::string templateString = R"(
     ${structureName} & set${MemberName}( ${memberType} ${reference}${memberName}_ ) )" HEADER_MACRO R"(_NOEXCEPT
@@ -6406,9 +6546,11 @@ void VulkanHppGenerator::appendStructSetter( std::string &                   str
         lenValue = "static_cast<" + lenMember->type.type + ">( " + lenValue + " )";
       }
 
-      static const std::string setArrayTemplate = R"(
+      static const std::string setArrayTemplate =
+        R"(
 #if !defined()" HEADER_MACRO R"(_DISABLE_ENHANCED_MODE)
-    ${templateHeader}${structureName} & set${ArrayName}( )" HEADER_MACRO R"(_NAMESPACE::ArrayProxyNoTemporaries<${memberType}> const & ${arrayName}_ ) )" HEADER_MACRO R"(_NOEXCEPT
+    ${templateHeader}${structureName} & set${ArrayName}( )" HEADER_MACRO
+        R"(_NAMESPACE::ArrayProxyNoTemporaries<${memberType}> const & ${arrayName}_ ) )" HEADER_MACRO R"(_NOEXCEPT
     {
       ${lenName} = ${lenValue};
       ${memberName} = ${arrayName}_.data();
@@ -6468,8 +6610,8 @@ void VulkanHppGenerator::appendStructSubConstructor( std::string &              
     str +=
       "\n"
       "    explicit " +
-      stripPrefix( structData.first, STRUCT_PREFIX ) + "( " + stripPrefix( subStruct->first, STRUCT_PREFIX ) + " const& " +
-      subStructArgumentName + subArguments + " )\n" + subCopies + "    {}\n";
+      stripPrefix( structData.first, STRUCT_PREFIX ) + "( " + stripPrefix( subStruct->first, STRUCT_PREFIX ) +
+      " const& " + subStructArgumentName + subArguments + " )\n" + subCopies + "    {}\n";
   }
 }
 
@@ -6492,7 +6634,8 @@ void VulkanHppGenerator::appendStructure( std::string &                         
     // only structs that are not returnedOnly get setters!
     for ( size_t i = 0; i < structure.second.members.size(); i++ )
     {
-      appendStructSetter( constructorAndSetters, stripPrefix( structure.first, STRUCT_PREFIX ), structure.second.members, i );
+      appendStructSetter(
+        constructorAndSetters, stripPrefix( structure.first, STRUCT_PREFIX ), structure.second.members, i );
     }
   }
 
@@ -6513,9 +6656,9 @@ void VulkanHppGenerator::appendStructure( std::string &                         
 ${allowDuplicate}
 )"
 #if NEEDS_STRUCTURE_TYPE_ENUM
-    "${structureType}"
+                                               "${structureType}"
 #endif
-R"(
+                                               R"(
 ${constructorAndSetters}
 
     operator ${vkName} const&() const )" HEADER_MACRO R"(_NOEXCEPT
@@ -6547,7 +6690,8 @@ ${members}
                      ( structure.second.allowDuplicate ? "true;" : "false;" );
 #ifdef NEEDS_STRUCTURE_TYPE_ENUM
     structureType =
-      "    static " HEADER_MACRO "_CONST_OR_CONSTEXPR StructureType structureType = StructureType::" + sTypeValue + ";\n";
+      "    static " HEADER_MACRO "_CONST_OR_CONSTEXPR StructureType structureType = StructureType::" + sTypeValue +
+      ";\n";
 #endif
   }
   str += replaceWithMap( structureTemplate,
@@ -6577,7 +6721,8 @@ ${members}
 
   for ( std::string const & alias : structure.second.aliases )
   {
-    str += "  using " + stripPrefix( alias, STRUCT_PREFIX ) + " = " + stripPrefix( structure.first, STRUCT_PREFIX ) + ";\n";
+    str +=
+      "  using " + stripPrefix( alias, STRUCT_PREFIX ) + " = " + stripPrefix( structure.first, STRUCT_PREFIX ) + ";\n";
   }
 
   str += leave;
@@ -6738,7 +6883,8 @@ void VulkanHppGenerator::appendUnion( std::string & str, std::pair<std::string, 
          "  {\n"
          "    " +
          unionName + "( " HEADER_MACRO "_NAMESPACE::" + unionName +
-         " const& rhs ) " HEADER_MACRO "_NOEXCEPT\n"
+         " const& rhs ) " HEADER_MACRO
+         "_NOEXCEPT\n"
          "    {\n"
          "      memcpy( static_cast<void*>(this), &rhs, sizeof( " HEADER_MACRO "_NAMESPACE::" +
          unionName +
@@ -6748,8 +6894,8 @@ void VulkanHppGenerator::appendUnion( std::string & str, std::pair<std::string, 
   bool firstMember = true;
   for ( auto const & member : structure.second.members )
   {
-    // <STRUCT_PREFIX>Bool32 is aliased to uint32_t. Don't create a <STRUCT_PREFIX>Bool32 constructor if the union also contains a uint32_t
-    // constructor.
+    // <STRUCT_PREFIX>Bool32 is aliased to uint32_t. Don't create a <STRUCT_PREFIX>Bool32 constructor if the union also
+    // contains a uint32_t constructor.
     auto compareBool32Alias = []( MemberData const & member ) {
       return member.type.type == std::string( "uint32_t" );
     };
@@ -6788,7 +6934,8 @@ void VulkanHppGenerator::appendUnion( std::string & str, std::pair<std::string, 
 
   // assignment operator
   static const std::string operatorsTemplate = R"(
-    )" HEADER_MACRO R"(_NAMESPACE::${unionName} & operator=( )" HEADER_MACRO R"(_NAMESPACE::${unionName} const & rhs ) )" HEADER_MACRO R"(_NOEXCEPT
+    )" HEADER_MACRO R"(_NAMESPACE::${unionName} & operator=( )" HEADER_MACRO
+                                               R"(_NAMESPACE::${unionName} const & rhs ) )" HEADER_MACRO R"(_NOEXCEPT
     {
       memcpy( static_cast<void*>(this), &rhs, sizeof( )" HEADER_MACRO R"(_NAMESPACE::${unionName} ) );
       return *this;
@@ -6864,15 +7011,18 @@ void VulkanHppGenerator::appendUniqueTypes( std::string &                 str,
     std::string enter, leave;
     std::tie( enter, leave ) = generateProtection( handleIt->first, !handleIt->second.alias.empty() );
 
-    str += enter + "  "
+    str += enter +
+           "  "
 #ifdef NEEDS_DISPATCH
            "template <typename Dispatch> "
 #endif
-           "class UniqueHandleTraits<" + type +
+           "class UniqueHandleTraits<" +
+           type +
 #ifdef NEEDS_DISPATCH
            ", Dispatch"
 #endif
-           "> { public: using deleter = " + deleterType + deleterAction + "<" + deleterParent + deleterPool +
+           "> { public: using deleter = " +
+           deleterType + deleterAction + "<" + deleterParent + deleterPool +
 #ifdef NEEDS_DISPATCH
            ", Dispatch"
 #endif
@@ -6880,7 +7030,8 @@ void VulkanHppGenerator::appendUniqueTypes( std::string &                 str,
            "  using Unique" +
            type + " = UniqueHandle<" + type +
 #ifdef NEEDS_DISPATCH
-           ", " HEADER_MACRO "_DEFAULT_DISPATCHER_TYPE"
+           ", " HEADER_MACRO
+           "_DEFAULT_DISPATCHER_TYPE"
 #endif
            ">;\n";
 
@@ -6888,7 +7039,8 @@ void VulkanHppGenerator::appendUniqueTypes( std::string &                 str,
     {
       str += "  using Unique" + stripPrefix( handleIt->second.alias, STRUCT_PREFIX ) + " = UniqueHandle<" + type +
 #ifdef NEEDS_DISPATCH
-             ", " HEADER_MACRO "_DEFAULT_DISPATCHER_TYPE"
+             ", " HEADER_MACRO
+             "_DEFAULT_DISPATCHER_TYPE"
 #endif
              ">;\n";
     }
@@ -7082,12 +7234,12 @@ void VulkanHppGenerator::checkCorrectness()
     {
       assert( !handle.second.objTypeEnum.empty() );
       check( std::find_if( objectTypeIt->second.values.begin(),
-                            objectTypeIt->second.values.end(),
-                            [&handle]( EnumValueData const & evd ) {
-                              return evd.vulkanValue == handle.second.objTypeEnum;
-                            } ) != objectTypeIt->second.values.end(),
-              handle.second.xmlLine,
-              "handle <" + handle.first + "> specifies unknown \"objtypeenum\" <" + handle.second.objTypeEnum + ">" );
+                           objectTypeIt->second.values.end(),
+                           [&handle]( EnumValueData const & evd ) {
+                             return evd.vulkanValue == handle.second.objTypeEnum;
+                           } ) != objectTypeIt->second.values.end(),
+             handle.second.xmlLine,
+             "handle <" + handle.first + "> specifies unknown \"objtypeenum\" <" + handle.second.objTypeEnum + ">" );
     }
 #endif
   }
@@ -7097,13 +7249,13 @@ void VulkanHppGenerator::checkCorrectness()
     if ( objectTypeValue.vkValue != "eUnknown" )
     {
       check( std::find_if( m_handles.begin(),
-                          m_handles.end(),
-                          [&objectTypeValue]( std::pair<std::string, HandleData> const & hd ) {
-                            return hd.second.objTypeEnum == objectTypeValue.vulkanValue;
-                          } ) != m_handles.end(),
-            objectTypeValue.xmlLine,
-            STRUCT_PREFIX "ObjectType value <" + objectTypeValue.vulkanValue +
-              "> not specified as \"objtypeenum\" for any handle" );
+                           m_handles.end(),
+                           [&objectTypeValue]( std::pair<std::string, HandleData> const & hd ) {
+                             return hd.second.objTypeEnum == objectTypeValue.vulkanValue;
+                           } ) != m_handles.end(),
+             objectTypeValue.xmlLine,
+             STRUCT_PREFIX "ObjectType value <" + objectTypeValue.vulkanValue +
+               "> not specified as \"objtypeenum\" for any handle" );
     }
   }
 #endif
@@ -7285,13 +7437,14 @@ std::string VulkanHppGenerator::determineEnhancedReturnType( CommandData const &
   return ( commandData.params[returnParamIndex].type.type == "void" )
            ? "std::vector<uint8_t,Allocator>"  // the return parameter is a vector-type parameter
 #ifdef NEEDS_STRUCTURE_CHAIN
-           : isStructureChain ? "std::vector<StructureChain,Allocator>"  // for structureChain returns, it's just
-                                                                       // a vector of StrutureChains
+         : isStructureChain
+           ? "std::vector<StructureChain,Allocator>"  // for structureChain returns, it's just
+                                                      // a vector of StrutureChains
 #endif
-                              : "std::vector<" + stripPrefix( commandData.params[returnParamIndex].type.type, STRUCT_PREFIX ) +
-                                ",Allocator>";  // for the other parameters, we use a vector of the pure type
+           : "std::vector<" + stripPrefix( commandData.params[returnParamIndex].type.type, STRUCT_PREFIX ) +
+               ",Allocator>";  // for the other parameters, we use a vector of the pure type
 #ifndef NEEDS_STRUCTURE_CHAIN
-  static_cast<void>(isStructureChain);
+  static_cast<void>( isStructureChain );
 #endif
 }
 
@@ -7518,7 +7671,7 @@ void VulkanHppGenerator::appendIndexTypeTraits( std::string & str ) const
     }
   }
 #else
-    static_cast<void>(str);
+  static_cast<void>( str );
 #endif
 }
 
@@ -7544,7 +7697,7 @@ std::string VulkanHppGenerator::generateLenInitializer(
   bool                                                                           mutualExclusiveLens ) const
 {
   std::string initializer;
-  if (mutualExclusiveLens)
+  if ( mutualExclusiveLens )
   {
     // there are multiple mutually exclusive arrays related to this len
     for ( size_t i = 0; i + 1 < litit->second.size(); i++ )
@@ -7631,7 +7784,7 @@ std::string
   if ( 1 < arrayIts.size() )
   {
     std::string assertionText, throwText;
-    if (mutualExclusiveLens)
+    if ( mutualExclusiveLens )
     {
       // exactly one of the arrays has to be non-empty
       std::string sum;
@@ -7643,8 +7796,8 @@ std::string
       assertionText += prefix + "  " HEADER_MACRO "_ASSERT( ( " + sum + " ) == 1 );\n";
       throwText += prefix + "  if ( ( " + sum + " ) != 1 )\n";
       throwText += prefix + "  {\n";
-      throwText += prefix + "    throw LogicError( " HEADER_MACRO "_NAMESPACE_STRING \"::" + structName + "::" + structName +
-                   ": ( " + sum + " ) != 1\" );\n";
+      throwText += prefix + "    throw LogicError( " HEADER_MACRO "_NAMESPACE_STRING \"::" + structName +
+                   "::" + structName + ": ( " + sum + " ) != 1\" );\n";
       throwText += prefix + "  }\n";
     }
     else
@@ -7659,7 +7812,8 @@ std::string
           std::string secondName     = startLowerCase( stripPrefix( arrayIts[second]->name, "p" ) ) + "_";
           std::string assertionCheck = firstName + ".size() == " + secondName + ".size()";
           std::string throwCheck     = firstName + ".size() != " + secondName + ".size()";
-          if ( ( !arrayIts[first]->optional.empty() && arrayIts[first]->optional.front() ) || ( !arrayIts[second]->optional.empty() && arrayIts[second]->optional.front() ) )
+          if ( ( !arrayIts[first]->optional.empty() && arrayIts[first]->optional.front() ) ||
+               ( !arrayIts[second]->optional.empty() && arrayIts[second]->optional.front() ) )
           {
             assertionCheck = "( " + assertionCheck + " )";
             throwCheck     = "( " + throwCheck + " )";
@@ -7837,7 +7991,7 @@ bool VulkanHppGenerator::isStructureChainAnchor( std::string const & type ) cons
     }
   }
 #else
-  static_cast<void>(type);
+  static_cast<void>( type );
 #endif
   return false;
 }
@@ -7926,7 +8080,9 @@ void VulkanHppGenerator::readBitmask( tinyxml2::XMLElement const *              
     TypeInfo typeInfo;
     std::tie( nameData, typeInfo ) = readNameAndType( element );
 
-    check( beginsWith( nameData.name, STRUCT_PREFIX ), line, "name <" + nameData.name + "> does not begin with <" STRUCT_PREFIX ">" );
+    check( beginsWith( nameData.name, STRUCT_PREFIX ),
+           line,
+           "name <" + nameData.name + "> does not begin with <" STRUCT_PREFIX ">" );
     check( nameData.arraySizes.empty(), line, "name <" + nameData.name + "> with unsupported arraySizes" );
     check( nameData.bitCount.empty(),
            line,
@@ -8161,7 +8317,9 @@ std::pair<std::string, std::string> VulkanHppGenerator::readCommandProto( tinyxm
   TypeInfo typeInfo;
   std::tie( nameData, typeInfo ) = readNameAndType( element );
 
-  check( beginsWith( nameData.name, COMMAND_PREFIX ), line, "name <" + nameData.name + "> does not begin with <" COMMAND_PREFIX ">" );
+  check( beginsWith( nameData.name, COMMAND_PREFIX ),
+         line,
+         "name <" + nameData.name + "> does not begin with <" COMMAND_PREFIX ">" );
   check( nameData.arraySizes.empty(), line, "name <" + nameData.name + "> with unsupported arraySizes" );
   check( nameData.bitCount.empty(),
          line,
@@ -8221,7 +8379,9 @@ void VulkanHppGenerator::readDefine( tinyxml2::XMLElement const *               
   if ( !name.empty() )
   {
     check( !element->FirstChildElement(), line, "unknown formatting of type category=define name <" + name + ">" );
-    check( name == MACRO_PREFIX "_DEFINE_NON_DISPATCHABLE_HANDLE", line, "unknown type category=define name <" + name + ">" );
+    check( name == MACRO_PREFIX "_DEFINE_NON_DISPATCHABLE_HANDLE",
+           line,
+           "unknown type category=define name <" + name + ">" );
     check( element->LastChild() && element->LastChild()->ToText() && element->LastChild()->ToText()->Value(),
            line,
            "unknown formatting of type category=define named <" + name + ">" );
@@ -9007,7 +9167,9 @@ void VulkanHppGenerator::readHandle( tinyxml2::XMLElement const *               
     TypeInfo typeInfo;
     std::tie( nameData, typeInfo ) = readNameAndType( element );
 
-    check( beginsWith( nameData.name, STRUCT_PREFIX ), line, "name <" + nameData.name + "> does not begin with <" STRUCT_PREFIX ">" );
+    check( beginsWith( nameData.name, STRUCT_PREFIX ),
+           line,
+           "name <" + nameData.name + "> does not begin with <" STRUCT_PREFIX ">" );
     check( nameData.arraySizes.empty(), line, "name <" + nameData.name + "> with unsupported arraySizes" );
     check( nameData.bitCount.empty(),
            line,
@@ -10128,7 +10290,8 @@ void VulkanHppGenerator::setVulkanLicenseHeader( int line, std::string const & c
   }
 
   // and add a little message on our own
-  m_vulkanLicenseHeader += "\n\n// This header is generated using [Vulkan-Hpp](https://github.com/KhronosGroup/Vulkan-Hpp)'s [fork](https://github.com/Cvelth/vkma_vulkan_hpp_fork).";
+  m_vulkanLicenseHeader +=
+    "\n\n// This header is generated using [Vulkan-Hpp](https://github.com/KhronosGroup/Vulkan-Hpp)'s [fork](https://github.com/Cvelth/vkma_vulkan_hpp_fork).";
   m_vulkanLicenseHeader = trim( m_vulkanLicenseHeader ) + "\n";
 }
 
@@ -10153,9 +10316,9 @@ std::string VulkanHppGenerator::toString( TypeCategory category )
 std::string VulkanHppGenerator::TypeInfo::compose( bool inNamespace ) const
 {
   return prefix + ( prefix.empty() ? "" : " " ) +
-         ( inNamespace
-             ? ( ( ( type.substr( 0, 2 ) == STRUCT_PREFIX ) ? HEADER_MACRO "_NAMESPACE::" : "" ) + stripPrefix( type, STRUCT_PREFIX ) )
-             : type ) +
+         ( inNamespace ? ( ( ( type.substr( 0, 2 ) == STRUCT_PREFIX ) ? HEADER_MACRO "_NAMESPACE::" : "" ) +
+                           stripPrefix( type, STRUCT_PREFIX ) )
+                       : type ) +
          postfix;
 }
 
@@ -10378,7 +10541,8 @@ int main( int argc, char ** argv )
     {}
 
     template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
-    ArrayProxyNoTemporaries( std::initializer_list<typename std::remove_const<T>::type> const & list ) )" HEADER_MACRO R"(_NOEXCEPT
+    ArrayProxyNoTemporaries( std::initializer_list<typename std::remove_const<T>::type> const & list ) )" HEADER_MACRO
+                                             R"(_NOEXCEPT
       : m_count( static_cast<uint32_t>( list.size() ) )
       , m_ptr( list.begin() )
     {}
@@ -10389,7 +10553,8 @@ int main( int argc, char ** argv )
     {}
 
     template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
-    ArrayProxyNoTemporaries( std::initializer_list<typename std::remove_const<T>::type> & list ) )" HEADER_MACRO R"(_NOEXCEPT
+    ArrayProxyNoTemporaries( std::initializer_list<typename std::remove_const<T>::type> & list ) )" HEADER_MACRO
+                                             R"(_NOEXCEPT
       : m_count( static_cast<uint32_t>( list.size() ) )
       , m_ptr( list.begin() )
     {}
@@ -10404,7 +10569,8 @@ int main( int argc, char ** argv )
     {}
 
     template <size_t N, typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
-    ArrayProxyNoTemporaries( std::array<typename std::remove_const<T>::type, N> const & data ) )" HEADER_MACRO R"(_NOEXCEPT
+    ArrayProxyNoTemporaries( std::array<typename std::remove_const<T>::type, N> const & data ) )" HEADER_MACRO
+                                             R"(_NOEXCEPT
       : m_count( N )
       , m_ptr( data.data() )
     {}
@@ -10435,7 +10601,8 @@ int main( int argc, char ** argv )
     template <class Allocator = std::allocator<typename std::remove_const<T>::type>,
               typename B      = T,
               typename std::enable_if<std::is_const<B>::value, int>::type = 0>
-    ArrayProxyNoTemporaries( std::vector<typename std::remove_const<T>::type, Allocator> const & data ) )" HEADER_MACRO R"(_NOEXCEPT
+    ArrayProxyNoTemporaries( std::vector<typename std::remove_const<T>::type, Allocator> const & data ) )" HEADER_MACRO
+                                             R"(_NOEXCEPT
       : m_count( static_cast<uint32_t>( data.size() ) )
       , m_ptr( data.data() )
     {}
@@ -10449,7 +10616,8 @@ int main( int argc, char ** argv )
     template <class Allocator = std::allocator<typename std::remove_const<T>::type>,
               typename B      = T,
               typename std::enable_if<std::is_const<B>::value, int>::type = 0>
-    ArrayProxyNoTemporaries( std::vector<typename std::remove_const<T>::type, Allocator> & data ) )" HEADER_MACRO R"(_NOEXCEPT
+    ArrayProxyNoTemporaries( std::vector<typename std::remove_const<T>::type, Allocator> & data ) )" HEADER_MACRO
+                                             R"(_NOEXCEPT
       : m_count( static_cast<uint32_t>( data.size() ) )
       , m_ptr( data.data() )
     {}
@@ -10728,7 +10896,8 @@ int main( int argc, char ** argv )
     }
 
     // assignment operators
-    )" HEADER_MACRO R"(_CONSTEXPR_14 Flags<BitType> & operator=(Flags<BitType> const& rhs) )" HEADER_MACRO R"(_NOEXCEPT = default;
+    )" HEADER_MACRO R"(_CONSTEXPR_14 Flags<BitType> & operator=(Flags<BitType> const& rhs) )" HEADER_MACRO
+                                        R"(_NOEXCEPT = default;
 
     )" HEADER_MACRO R"(_CONSTEXPR_14 Flags<BitType> & operator|=(Flags<BitType> const& rhs) )" HEADER_MACRO R"(_NOEXCEPT
     {
@@ -10808,19 +10977,22 @@ int main( int argc, char ** argv )
 
   // bitwise operators
   template <typename BitType>
-  )" HEADER_MACRO R"(_CONSTEXPR Flags<BitType> operator&(BitType bit, Flags<BitType> const& flags) )" HEADER_MACRO R"(_NOEXCEPT
+  )" HEADER_MACRO R"(_CONSTEXPR Flags<BitType> operator&(BitType bit, Flags<BitType> const& flags) )" HEADER_MACRO
+                                        R"(_NOEXCEPT
   {
     return flags.operator&( bit );
   }
 
   template <typename BitType>
-  )" HEADER_MACRO R"(_CONSTEXPR Flags<BitType> operator|(BitType bit, Flags<BitType> const& flags) )" HEADER_MACRO R"(_NOEXCEPT
+  )" HEADER_MACRO R"(_CONSTEXPR Flags<BitType> operator|(BitType bit, Flags<BitType> const& flags) )" HEADER_MACRO
+                                        R"(_NOEXCEPT
   {
     return flags.operator|( bit );
   }
 
   template <typename BitType>
-  )" HEADER_MACRO R"(_CONSTEXPR Flags<BitType> operator^(BitType bit, Flags<BitType> const& flags) )" HEADER_MACRO R"(_NOEXCEPT
+  )" HEADER_MACRO R"(_CONSTEXPR Flags<BitType> operator^(BitType bit, Flags<BitType> const& flags) )" HEADER_MACRO
+                                        R"(_NOEXCEPT
   {
     return flags.operator^( bit );
   }
@@ -10831,9 +11003,9 @@ int main( int argc, char ** argv )
 
   template <typename OwnerType)"
 #ifdef NEEDS_DISPATCH
-    ", typename Dispatch"
+                                                ", typename Dispatch"
 #endif
-    R"(>
+                                                R"(>
   class ObjectDestroy
   {
     public:
@@ -10843,21 +11015,22 @@ int main( int argc, char ** argv )
                    Optional<const AllocationCallbacks> allocationCallbacks
                                     )" HEADER_MACRO R"(_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT)"
 #ifdef NEEDS_DISPATCH
-    R"(,
+                                                R"(,
                    Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
 #endif
-    " ) " HEADER_MACRO R"(_NOEXCEPT
+                                                " ) " HEADER_MACRO R"(_NOEXCEPT
       : m_owner( owner )
       , m_allocationCallbacks( allocationCallbacks ))"
 #ifdef NEEDS_DISPATCH
-    R"(
+                                                R"(
       , m_dispatch( &dispatch ))"
 #endif
-    R"(
+                                                R"(
     {}
 
       OwnerType getOwner() const )" HEADER_MACRO R"(_NOEXCEPT { return m_owner; }
-      Optional<const AllocationCallbacks> getAllocator() const )" HEADER_MACRO R"(_NOEXCEPT { return m_allocationCallbacks; }
+      Optional<const AllocationCallbacks> getAllocator() const )" HEADER_MACRO
+                                                R"(_NOEXCEPT { return m_allocationCallbacks; }
 
     protected:
       template <typename T>
@@ -10865,55 +11038,57 @@ int main( int argc, char ** argv )
       {
         )" HEADER_MACRO R"(_ASSERT( m_owner)"
 #ifdef NEEDS_DISPATCH
-    " && m_dispatch"
+                                                " && m_dispatch"
 #endif
-    R"( );
+                                                R"( );
         m_owner.destroy( t, m_allocationCallbacks)"
 #ifdef NEEDS_DISPATCH
-    ", *m_dispatch"
+                                                ", *m_dispatch"
 #endif
-    R"( );
+                                                R"( );
       }
 
     private:
     OwnerType                           m_owner               = {};
     Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;)"
 #ifdef NEEDS_DISPATCH
-    "\nDispatch const *                    m_dispatch            = nullptr;"
+                                                "\nDispatch const *                    m_dispatch            = nullptr;"
 #endif
-    R"(
+                                                R"(
   };
 
   class NoParent;
 
   template <)"
 #ifdef NEEDS_DISPATCH
-    "typename Dispatch"
+                                                "typename Dispatch"
 #endif
-    ">\n" R"(  class ObjectDestroy<NoParent)"
+                                                ">\n"
+                                                R"(  class ObjectDestroy<NoParent)"
 #ifdef NEEDS_DISPATCH
-    ", Dispatch"
+                                                ", Dispatch"
 #endif
-    R"(>
+                                                R"(>
   {
     public:
     ObjectDestroy() = default;
 
     ObjectDestroy( Optional<const AllocationCallbacks> allocationCallbacks)"
 #ifdef NEEDS_DISPATCH
-    R"(,
+                                                R"(,
                    Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
 #endif
-    " ) " HEADER_MACRO R"(_NOEXCEPT
+                                                " ) " HEADER_MACRO R"(_NOEXCEPT
       : m_allocationCallbacks( allocationCallbacks ))"
 #ifdef NEEDS_DISPATCH
-    R"(
+                                                R"(
       , m_dispatch( &dispatch ))"
 #endif
-    R"(
+                                                R"(
     {}
 
-      Optional<const AllocationCallbacks> getAllocator() const )" HEADER_MACRO R"(_NOEXCEPT { return m_allocationCallbacks; }
+      Optional<const AllocationCallbacks> getAllocator() const )" HEADER_MACRO
+                                                R"(_NOEXCEPT { return m_allocationCallbacks; }
 
     protected:
       template <typename T>
@@ -10921,49 +11096,51 @@ int main( int argc, char ** argv )
       {
         )"
 #ifdef NEEDS_DISPATCH
-    HEADER_MACRO R"(_ASSERT( m_dispatch );)" "\n        "
+    HEADER_MACRO R"(_ASSERT( m_dispatch );)"
+                                                "\n        "
 #endif
-    "t.destroy( m_allocationCallbacks"
+                                                "t.destroy( m_allocationCallbacks"
 #ifdef NEEDS_DISPATCH
-    ", *m_dispatch"
+                                                ", *m_dispatch"
 #endif
-    R"( );
+                                                R"( );
       }
 
     private:
     Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;)"
 #ifdef NEEDS_DISPATCH
-    "\nDispatch const *                    m_dispatch            = nullptr;"
+                                                "\nDispatch const *                    m_dispatch            = nullptr;"
 #endif
-    R"(
+                                                R"(
   };
 )";
 
   static const std::string classObjectFree = R"(
   template <typename OwnerType)"
 #ifdef NEEDS_DISPATCH
-      ", typename Dispatch"
+                                             ", typename Dispatch"
 #endif
-      R"(>
+                                             R"(>
   class ObjectFree
   {
   public:
     ObjectFree() = default;
 
     ObjectFree( OwnerType owner,
-                Optional<const AllocationCallbacks> allocationCallbacks )" HEADER_MACRO R"(_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT)"
+                Optional<const AllocationCallbacks> allocationCallbacks )" HEADER_MACRO
+                                             R"(_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT)"
 #ifdef NEEDS_DISPATCH
-      R"(,
+                                             R"(,
                 Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
 #endif
-      " ) " HEADER_MACRO R"(_NOEXCEPT
+                                             " ) " HEADER_MACRO R"(_NOEXCEPT
       : m_owner( owner )
       , m_allocationCallbacks( allocationCallbacks ))"
 #ifdef NEEDS_DISPATCH
-      R"(
+                                             R"(
       , m_dispatch( &dispatch ))"
 #endif
-      R"(
+                                             R"(
     {}
 
     OwnerType getOwner() const )" HEADER_MACRO R"(_NOEXCEPT
@@ -10982,32 +11159,33 @@ int main( int argc, char ** argv )
     {
       )" HEADER_MACRO R"(_ASSERT( m_owner)"
 #ifdef NEEDS_DISPATCH
-    " && m_dispatch"
+                                             " && m_dispatch"
 #endif
-    R"( );
+                                             R"( );
       m_owner.free( t, m_allocationCallbacks)"
 #ifdef NEEDS_DISPATCH
-    ", *m_dispatch"
+                                             ", *m_dispatch"
 #endif
-    R"( );
+                                             R"( );
     }
 
   private:
     OwnerType                           m_owner               = {};
     Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;)"
 #ifdef NEEDS_DISPATCH
-    "\nDispatch const *                    m_dispatch            = nullptr;"
+                                             "\nDispatch const *                    m_dispatch            = nullptr;"
 #endif
-    R"(
+                                             R"(
   };
 )";
 
-  static const std::string classObjectRelease = R"(
+  static const std::string classObjectRelease =
+    R"(
   template <typename OwnerType)"
 #ifdef NEEDS_DISPATCH
-      ", typename Dispatch"
+    ", typename Dispatch"
 #endif
-      R"(>
+    R"(>
   class ObjectRelease
   {
   public:
@@ -11077,9 +11255,9 @@ int main( int argc, char ** argv )
   static const std::string classPoolFree = R"(
   template <typename OwnerType, typename PoolType)"
 #ifdef NEEDS_DISPATCH
-    ", typename Dispatch"
+                                           ", typename Dispatch"
 #endif
-    R"(>
+                                           R"(>
   class PoolFree
   {
     public:
@@ -11088,17 +11266,17 @@ int main( int argc, char ** argv )
     PoolFree( OwnerType        owner,
               PoolType         pool)"
 #ifdef NEEDS_DISPATCH
-    R"(,
+                                           R"(,
               Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
 #endif
-    " ) " HEADER_MACRO R"(_NOEXCEPT
+                                           " ) " HEADER_MACRO R"(_NOEXCEPT
       : m_owner( owner )
       , m_pool( pool ))"
 #ifdef NEEDS_DISPATCH
-    R"(
+                                           R"(
       , m_dispatch( &dispatch ))"
 #endif
-    R"(
+                                           R"(
     {}
 
       OwnerType getOwner() const )" HEADER_MACRO R"(_NOEXCEPT { return m_owner; }
@@ -11110,23 +11288,24 @@ int main( int argc, char ** argv )
       {
         m_owner.free( m_pool, t)"
 #ifdef NEEDS_DISPATCH
-    ", *m_dispatch"
+                                           ", *m_dispatch"
 #endif
-    R"( );
+                                           R"( );
       }
 
     private:
       OwnerType        m_owner    = OwnerType();
       PoolType         m_pool     = PoolType();)"
 #ifdef NEEDS_DISPATCH
-    "\nDispatch const * m_dispatch = nullptr;"
+                                           "\nDispatch const * m_dispatch = nullptr;"
 #endif
-    R"(
+                                           R"(
   };
 )";
 
 #ifdef NEEDS_STRUCTURE_CHAIN
-  static const std::string classStructureChain = R"(
+  static const std::string classStructureChain =
+    R"(
   template <typename X, typename Y> struct StructExtends { enum { value = false }; };
 
   template<typename Type, class...>
@@ -11196,7 +11375,8 @@ int main( int argc, char ** argv )
       link<sizeof...( ChainElements ) - 1>();
     }
 
-    StructureChain( ChainElements const &... elems ) )" HEADER_MACRO R"(_NOEXCEPT : std::tuple<ChainElements...>( elems... )
+    StructureChain( ChainElements const &... elems ) )" HEADER_MACRO
+    R"(_NOEXCEPT : std::tuple<ChainElements...>( elems... )
     {
       static_assert( StructureChainValidation<sizeof...( ChainElements ) - 1, ChainElements...>::valid,
                      "The structure chain is not valid!" );
@@ -11261,7 +11441,8 @@ int main( int argc, char ** argv )
         !std::is_same<ClassType, typename std::tuple_element<0, std::tuple<ChainElements...>>::type>::value || (Which != 0),
         "It's not allowed to unlink the first element!" );
 
-      unlink<sizeof...( ChainElements ) - 1>( reinterpret_cast<)" STRUCT_PREFIX R"(BaseOutStructure const *>( &get<ClassType, Which>() ) );
+      unlink<sizeof...( ChainElements ) - 1>( reinterpret_cast<)" STRUCT_PREFIX
+    R"(BaseOutStructure const *>( &get<ClassType, Which>() ) );
     }
 
   private:
@@ -11298,7 +11479,8 @@ int main( int argc, char ** argv )
 
     bool isLinked( )" STRUCT_PREFIX R"(BaseInStructure const * pNext )
     {
-      )" STRUCT_PREFIX R"(BaseInStructure const * elementPtr = reinterpret_cast<)" STRUCT_PREFIX R"(BaseInStructure const*>(&std::get<0>( static_cast<std::tuple<ChainElements...>&>( *this ) ) );
+      )" STRUCT_PREFIX R"(BaseInStructure const * elementPtr = reinterpret_cast<)" STRUCT_PREFIX
+    R"(BaseInStructure const*>(&std::get<0>( static_cast<std::tuple<ChainElements...>&>( *this ) ) );
       while ( elementPtr )
       {
         if ( elementPtr->pNext == pNext )
@@ -11323,7 +11505,8 @@ int main( int argc, char ** argv )
     {}
 
     template <size_t Index>
-    typename std::enable_if<Index != 0, void>::type unlink( )" STRUCT_PREFIX R"(BaseOutStructure const * pNext ) )" HEADER_MACRO R"(_NOEXCEPT
+    typename std::enable_if<Index != 0, void>::type unlink( )" STRUCT_PREFIX
+    R"(BaseOutStructure const * pNext ) )" HEADER_MACRO R"(_NOEXCEPT
     {
       auto & element = std::get<Index>( static_cast<std::tuple<ChainElements...>&>( *this ) );
       if ( element.pNext == pNext )
@@ -11337,7 +11520,8 @@ int main( int argc, char ** argv )
     }
 
     template <size_t Index>
-    typename std::enable_if<Index == 0, void>::type unlink( )" STRUCT_PREFIX R"(BaseOutStructure const * pNext ) )" HEADER_MACRO R"(_NOEXCEPT
+    typename std::enable_if<Index == 0, void>::type unlink( )" STRUCT_PREFIX
+    R"(BaseOutStructure const * pNext ) )" HEADER_MACRO R"(_NOEXCEPT
     {
       auto & element = std::get<0>( static_cast<std::tuple<ChainElements...>&>( *this ) );
       if ( element.pNext == pNext )
@@ -11353,7 +11537,8 @@ int main( int argc, char ** argv )
 )";
 #endif
 
-  static const std::string classUniqueHandle = R"(
+  static const std::string classUniqueHandle =
+    R"(
 #if !defined()" HEADER_MACRO R"(_NO_SMART_HANDLE)
   template <typename Type)"
 #ifdef NEEDS_DISPATCH
@@ -11479,7 +11664,8 @@ int main( int argc, char ** argv )
   };
 
   template <typename UniqueType>
-  )" HEADER_MACRO R"(_INLINE std::vector<typename UniqueType::element_type> uniqueToRaw(std::vector<UniqueType> const& handles)
+  )" HEADER_MACRO
+    R"(_INLINE std::vector<typename UniqueType::element_type> uniqueToRaw(std::vector<UniqueType> const& handles)
   {
     std::vector<typename UniqueType::element_type> newBuffer(handles.size());
     std::transform(handles.begin(), handles.end(), newBuffer.begin(), [](UniqueType const& handle) { return handle.get(); });
@@ -11621,7 +11807,8 @@ int main( int argc, char ** argv )
   class ErrorCategoryImpl : public std::error_category
   {
     public:
-    virtual const char* name() const )" HEADER_MACRO R"(_NOEXCEPT override { return )" HEADER_MACRO R"(_NAMESPACE_STRING"::Result"; }
+    virtual const char* name() const )" HEADER_MACRO R"(_NOEXCEPT override { return )" HEADER_MACRO
+                                        R"(_NAMESPACE_STRING"::Result"; }
     virtual std::string message(int ev) const override { return to_string(static_cast<Result>(ev)); }
   };
 
@@ -11704,6 +11891,7 @@ int main( int argc, char ** argv )
 #  error ")" HEADER_NAME R"( needs at least c++ standard version 11"
 #endif
 
+#include <)" INCLUDED_FILENAME R"(>
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -11716,7 +11904,6 @@ int main( int argc, char ** argv )
 #include <system_error>
 #include <tuple>
 #include <type_traits>
-#include <)" INCLUDED_FILENAME R"(>
 
 #if 17 <= )" HEADER_MACRO R"(_CPP_VERSION
 #include <string_view>
@@ -11764,7 +11951,8 @@ extern "C" __declspec( dllimport ) FARPROC __stdcall GetProcAddress( HINSTANCE h
 # define __has_include(x) false
 #endif
 
-#if ( 201711 <= __cpp_impl_three_way_comparison ) && __has_include( <compare> ) && !defined( )" HEADER_MACRO R"(_NO_SPACESHIP_OPERATOR )
+#if ( 201711 <= __cpp_impl_three_way_comparison ) && __has_include( <compare> ) && !defined( )" HEADER_MACRO
+                                      R"(_NO_SPACESHIP_OPERATOR )
 # define )" HEADER_MACRO R"(_HAS_SPACESHIP_OPERATOR
 #endif
 #if defined()" HEADER_MACRO R"(_HAS_SPACESHIP_OPERATOR)
@@ -11784,7 +11972,8 @@ namespace std
 #endif
 )";
 
-  static const std::string structResultValue = R"(
+  static const std::string structResultValue =
+    R"(
   template <typename T> void ignore(T const&) )" HEADER_MACRO R"(_NOEXCEPT {}
 
   template <typename T>
@@ -11814,25 +12003,29 @@ namespace std
     operator std::tuple<Result&, T&>() )" HEADER_MACRO R"(_NOEXCEPT { return std::tuple<Result&, T&>(result, value); }
 
 #if !defined()" HEADER_MACRO R"(_DISABLE_IMPLICIT_RESULT_VALUE_CAST)
-    )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
+    )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE
+    R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
     operator T const& () const & )" HEADER_MACRO R"(_NOEXCEPT
     {
       return value;
     }
 
-    )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
+    )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE
+    R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
     operator T& () & )" HEADER_MACRO R"(_NOEXCEPT
     {
       return value;
     }
 
-    )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
+    )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE
+    R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
     operator T const&& () const && )" HEADER_MACRO R"(_NOEXCEPT
     {
       return std::move( value );
     }
 
-    )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
+    )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE
+    R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
     operator T&& () && )" HEADER_MACRO R"(_NOEXCEPT
     {
       return std::move( value );
@@ -11879,7 +12072,8 @@ namespace std
     }
 
 #  if !defined()" HEADER_MACRO R"(_DISABLE_IMPLICIT_RESULT_VALUE_CAST)
-    )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
+    )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE
+    R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
     operator UniqueHandle<Type)"
 #ifdef NEEDS_DISPATCH
     ", Dispatch"
@@ -11889,7 +12083,8 @@ namespace std
       return value;
     }
 
-    )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
+    )" HEADER_MACRO R"(_DEPRECATED("Implicit-cast operators on )" DEFAULT_NAMESPACE
+    R"(::ResultValue are deprecated. Explicitly access the value as member of ResultValue.")
     operator UniqueHandle<Type)"
 #ifdef NEEDS_DISPATCH
     ", Dispatch"
@@ -11993,7 +12188,8 @@ namespace std
   }
 
   template <typename T>
-  )" HEADER_MACRO R"(_INLINE typename ResultValueType<T>::type createResultValue( Result result, T & data, char const * message )
+  )" HEADER_MACRO
+    R"(_INLINE typename ResultValueType<T>::type createResultValue( Result result, T & data, char const * message )
   {
 #ifdef )" HEADER_MACRO R"(_NO_EXCEPTIONS
     ignore(message);
@@ -12008,12 +12204,14 @@ namespace std
 #endif
   }
 
-  )" HEADER_MACRO R"(_INLINE Result createResultValue( Result result, char const * message, std::initializer_list<Result> successCodes )
+  )" HEADER_MACRO
+    R"(_INLINE Result createResultValue( Result result, char const * message, std::initializer_list<Result> successCodes )
   {
 #ifdef )" HEADER_MACRO R"(_NO_EXCEPTIONS
     ignore(message);
     ignore(successCodes);   // just in case )" HEADER_MACRO R"(_ASSERT_ON_RESULT is empty
-    )" HEADER_MACRO R"(_ASSERT_ON_RESULT( std::find( successCodes.begin(), successCodes.end(), result ) != successCodes.end() );
+    )" HEADER_MACRO
+    R"(_ASSERT_ON_RESULT( std::find( successCodes.begin(), successCodes.end(), result ) != successCodes.end() );
 #else
     if ( std::find( successCodes.begin(), successCodes.end(), result ) == successCodes.end() )
     {
@@ -12024,12 +12222,14 @@ namespace std
   }
 
   template <typename T>
-  )" HEADER_MACRO R"(_INLINE ResultValue<T> createResultValue( Result result, T & data, char const * message, std::initializer_list<Result> successCodes )
+  )" HEADER_MACRO
+    R"(_INLINE ResultValue<T> createResultValue( Result result, T & data, char const * message, std::initializer_list<Result> successCodes )
   {
 #ifdef )" HEADER_MACRO R"(_NO_EXCEPTIONS
     ignore(message);
     ignore(successCodes);   // just in case )" HEADER_MACRO R"(_ASSERT_ON_RESULT is empty
-    )" HEADER_MACRO R"(_ASSERT_ON_RESULT( std::find( successCodes.begin(), successCodes.end(), result ) != successCodes.end() );
+    )" HEADER_MACRO
+    R"(_ASSERT_ON_RESULT( std::find( successCodes.begin(), successCodes.end(), result ) != successCodes.end() );
 #else
     if ( std::find( successCodes.begin(), successCodes.end(), result ) == successCodes.end() )
     {
@@ -12042,30 +12242,30 @@ namespace std
 #ifndef )" HEADER_MACRO R"(_NO_SMART_HANDLE
   template <typename T)"
 #ifdef NEEDS_DISPATCH
-  R"(, typename Dispatch)"
+    R"(, typename Dispatch)"
 #endif
-  ">\n" HEADER_MACRO R"(_INLINE typename ResultValueType<UniqueHandle<T)"
+    ">\n" HEADER_MACRO R"(_INLINE typename ResultValueType<UniqueHandle<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>>::type createResultValue( Result result, T & data, char const * message, typename UniqueHandleTraits<T)"
+    R"(>>::type createResultValue( Result result, T & data, char const * message, typename UniqueHandleTraits<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>::deleter const& deleter )
+    R"(>::deleter const& deleter )
   {
 #ifdef )" HEADER_MACRO R"(_NO_EXCEPTIONS
     ignore(message);
     )" HEADER_MACRO R"(_ASSERT_ON_RESULT( result == Result::eSuccess );
     return ResultValue<UniqueHandle<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>>( result, UniqueHandle<T)"
+    R"(>>( result, UniqueHandle<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>(data, deleter) );
+    R"(>(data, deleter) );
 #else
     if ( result != Result::eSuccess )
     {
@@ -12073,35 +12273,36 @@ namespace std
     }
     return UniqueHandle<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>(data, deleter);
+    R"(>(data, deleter);
 #endif
   }
 
   template <typename T)"
 #ifdef NEEDS_DISPATCH
-  R"(, typename Dispatch)"
+    R"(, typename Dispatch)"
 #endif
-  ">\n" HEADER_MACRO R"(_INLINE ResultValue<UniqueHandle<T)"
+    ">\n" HEADER_MACRO R"(_INLINE ResultValue<UniqueHandle<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>>
+    R"(>>
                     createResultValue( Result                                             result,
                                        T &                                                data,
                                        char const *                                       message,
                                        std::initializer_list<Result>                      successCodes,
                                        typename UniqueHandleTraits<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>::deleter const & deleter )
+    R"(>::deleter const & deleter )
   {
 #  ifdef )" HEADER_MACRO R"(_NO_EXCEPTIONS
     ignore( message );
     ignore(successCodes);   // just in case )" HEADER_MACRO R"(_ASSERT_ON_RESULT is empty
-    )" HEADER_MACRO R"(_ASSERT_ON_RESULT( std::find( successCodes.begin(), successCodes.end(), result ) != successCodes.end() );
+    )" HEADER_MACRO
+    R"(_ASSERT_ON_RESULT( std::find( successCodes.begin(), successCodes.end(), result ) != successCodes.end() );
 #  else
     if ( std::find( successCodes.begin(), successCodes.end(), result ) == successCodes.end() )
     {
@@ -12110,38 +12311,38 @@ namespace std
 #  endif
     return ResultValue<UniqueHandle<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>>( result, UniqueHandle<T)"
+    R"(>>( result, UniqueHandle<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>( data, deleter ) );
+    R"(>( data, deleter ) );
   }
 
   template <typename T)"
 #ifdef NEEDS_DISPATCH
-  R"(, typename Dispatch)"
+    R"(, typename Dispatch)"
 #endif
-  ">\n" HEADER_MACRO R"(_INLINE typename ResultValueType<std::vector<UniqueHandle<T)"
+    ">\n" HEADER_MACRO R"(_INLINE typename ResultValueType<std::vector<UniqueHandle<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>>>::type
+    R"(>>>::type
     createResultValue( Result result, std::vector<UniqueHandle<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>> && data, char const * message )
+    R"(>> && data, char const * message )
   {
 #  ifdef )" HEADER_MACRO R"(_NO_EXCEPTIONS
     ignore( message );
     )" HEADER_MACRO R"(_ASSERT_ON_RESULT( result == Result::eSuccess );
     return ResultValue<std::vector<UniqueHandle<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>>>( result, std::move( data ) );
+    R"(>>>( result, std::move( data ) );
 #  else
     if ( result != Result::eSuccess )
     {
@@ -12153,26 +12354,27 @@ namespace std
 
   template <typename T)"
 #ifdef NEEDS_DISPATCH
-  R"(, typename Dispatch)"
+    R"(, typename Dispatch)"
 #endif
-  ">\n" HEADER_MACRO R"(_INLINE ResultValue<std::vector<UniqueHandle<T)"
+    ">\n" HEADER_MACRO R"(_INLINE ResultValue<std::vector<UniqueHandle<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>>>
+    R"(>>>
                     createResultValue( Result                             result,
                                        std::vector<UniqueHandle<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>> && data,
+    R"(>> && data,
                                        char const *                       message,
                                        std::initializer_list<Result>      successCodes )
   {
 #  ifdef )" HEADER_MACRO R"(_NO_EXCEPTIONS
     ignore( message );
     ignore(successCodes);   // just in case )" HEADER_MACRO R"(_ASSERT_ON_RESULT is empty
-    )" HEADER_MACRO R"(_ASSERT_ON_RESULT( std::find( successCodes.begin(), successCodes.end(), result ) != successCodes.end() );
+    )" HEADER_MACRO
+    R"(_ASSERT_ON_RESULT( std::find( successCodes.begin(), successCodes.end(), result ) != successCodes.end() );
 #  else
     if ( std::find( successCodes.begin(), successCodes.end(), result ) == successCodes.end() )
     {
@@ -12181,9 +12383,9 @@ namespace std
 #  endif
     return ResultValue<std::vector<UniqueHandle<T)"
 #ifdef NEEDS_DISPATCH
-  ", Dispatch"
+    ", Dispatch"
 #endif
-  R"(>>>( result, std::move( data ) );
+    R"(>>>( result, std::move( data ) );
   }
 #endif
 )";
@@ -12251,7 +12453,8 @@ namespace std
     generator.appendDispatchLoaderStatic( str );
     generator.appendDispatchLoaderDefault( str );
 #else
-    str += "#define " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT = {}\n# define " HEADER_MACRO "_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT = nullptr\n";
+    str += "#define " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT = {}\n# define " HEADER_MACRO
+           "_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT = nullptr\n";
 #endif
     str += classObjectDestroy + classObjectFree + classObjectRelease + classPoolFree + "\n";
     generator.appendBaseTypes( str );
@@ -12259,8 +12462,8 @@ namespace std
     generator.appendEnums( str );
     generator.appendIndexTypeTraits( str );
     generator.appendBitmasks( str );
-    str += "} // namespace " HEADER_MACRO "_NAMESPACE\n" + is_error_code_enum + "\n" + "namespace " HEADER_MACRO "_NAMESPACE\n" +
-           "{\n" + "#ifndef " HEADER_MACRO "_NO_EXCEPTIONS" + exceptions;
+    str += "} // namespace " HEADER_MACRO "_NAMESPACE\n" + is_error_code_enum + "\n" +
+           "namespace " HEADER_MACRO "_NAMESPACE\n" + "{\n" + "#ifndef " HEADER_MACRO "_NO_EXCEPTIONS" + exceptions;
     generator.appendResultExceptions( str );
     generator.appendThrowExceptions( str );
     str += "#endif\n" + structResultValue;
@@ -12277,14 +12480,14 @@ namespace std
     generator.appendHashStructures( str );
     str += "#endif\n";
 
-    std::ofstream ofs(OUTPUT_FILENAME);
+    std::ofstream ofs( OUTPUT_FILENAME );
     assert( !ofs.fail() );
     ofs << str;
     ofs.close();
 
 #if defined( CLANG_FORMAT_EXECUTABLE )
     std::cout << "VulkanHppGenerator: formatting hpp output using clang-format...";
-    int ret = std::system( "\"" CLANG_FORMAT_EXECUTABLE "\" -i --style=file " OUTPUT_FILENAME);
+    int ret = std::system( "\"" CLANG_FORMAT_EXECUTABLE "\" -i --style=file " OUTPUT_FILENAME );
     if ( ret != 0 )
     {
       std::cout << "VulkanHppGenerator: failed to format file " << filename << " with error <" << ret << ">\n";
