@@ -52,6 +52,11 @@
 #ifndef STRUCT_PREFIX
 # define STRUCT_PREFIX "Vk"
 #endif
+#ifdef CUSTOM_RESULT_ENUM_PREFIX
+# define RESULT_ENUM_PREFIX CUSTOM_RESULT_ENUM_PREFIX
+#else
+# define RESULT_ENUM_PREFIX MACRO_PREFIX
+#endif
 
 #ifndef DEFAULT_NAMESPACE
 # define DEFAULT_NAMESPACE "vk"
@@ -466,7 +471,7 @@ std::string getEnumPrefix( int line, std::string const & name, bool bitmask )
   std::string prefix;
   if ( name == STRUCT_PREFIX "Result" )
   {
-    prefix = MACRO_PREFIX "_";
+    prefix = RESULT_ENUM_PREFIX "_";
   }
   else if ( bitmask )
   {
@@ -12226,9 +12231,9 @@ namespace std
       stream.seekg( 0 );
       stream.read( source.data(), source_size );
 
-      str += "// START_EXTERNAL_BINDINGS\n";
+      str += "// External bindings file: \n";
       str += source;
-      str += "\n// END_EXTERNAL_BINDINGS\n\n";
+      str += "\n// The end of an external bindings file.\n\n";
     }
     else
       std::cout << "VulkanHppGenerator: failed to include bindings: " << NEEDS_INCLUDED_BINDINGS << " not found\n";
