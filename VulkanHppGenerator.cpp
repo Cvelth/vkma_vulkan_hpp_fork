@@ -11178,30 +11178,23 @@ int main( int argc, char ** argv )
     R"(>
   {
     public:
-    ObjectDestroy() = default;
-
-    ObjectDestroy( )"
+    ObjectDestroy() = default;)"
 #if defined( NEEDS_ALLOCATION_CALLBACKS ) && defined( NEEDS_DISPATCH )
-    "                   Optional<const AllocationCallbacks> allocationCallbacks,\n"
+    "\n\n    ObjectDestroy( Optional<const AllocationCallbacks> allocationCallbacks,\n"
     "                   Dispatch const & dispatch = " HEADER_MACRO
-    "_DEFAULT_DISPATCHER"
+    "_DEFAULT_DISPATCHER ) " HEADER_MACRO "_NOEXCEPT\n"
+    "      : m_allocationCallbacks( allocationCallbacks ), m_dispatch( &dispatch )\n"
+    "    {}\n"
 #elif defined( NEEDS_ALLOCATION_CALLBACKS )
-    "                   Optional<const AllocationCallbacks> allocationCallbacks"
+    "\n\n    ObjectDestroy( Optional<const AllocationCallbacks> allocationCallbacks ) " HEADER_MACRO "_NOEXCEPT\n"
+    "      : m_allocationCallbacks( allocationCallbacks )\n"
+    "    {}\n"
 #elif defined( NEEDS_DISPATCH )
-    "                   Dispatch const & dispatch = " HEADER_MACRO
-    "_DEFAULT_DISPATCHER"
+    "\n\n    ObjectDestroy( Dispatch const & dispatch = " HEADER_MACRO "_DEFAULT_DISPATCHER ) " HEADER_MACRO
+    "_NOEXCEPT\n"
+    "      : m_dispatch( &dispatch )\n"
+    "    {}\n"
 #endif
-    " ) " HEADER_MACRO "_NOEXCEPT"
-#if defined( NEEDS_ALLOCATION_CALLBACKS ) && defined( NEEDS_DISPATCH )
-    "      : m_allocationCallbacks( allocationCallbacks ), m_dispatch( &dispatch )"
-#elif defined( NEEDS_ALLOCATION_CALLBACKS )
-    "      : m_allocationCallbacks( allocationCallbacks )"
-#elif defined( NEEDS_DISPATCH )
-    "      : m_dispatch( &dispatch )"
-#endif
-    R"(
-    {}
-)"
 #ifdef NEEDS_ALLOCATION_CALLBACKS
     R"(
       Optional<const AllocationCallbacks> getAllocator() const )" HEADER_MACRO
