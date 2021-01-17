@@ -5511,14 +5511,20 @@ std::string VulkanHppGenerator::constructCommandVoid( std::string const &       
   std::string                                            noexceptString =
     vectorSizeCheck.first ? HEADER_MACRO "_NOEXCEPT_WHEN_NO_EXCEPTIONS" : HEADER_MACRO "_NOEXCEPT";
 
+  std::string templateDescription = typenameT;
+#ifdef NEEDS_DISPATCH
+  if ( !templateDescription.empty() )
+    templateDescription += ", typename Dispatch";
+  else
+    templateDescription = "typename Dispatch";
+#endif
+  if ( !templateDescription.empty() )
+    templateDescription = "  template <" + templateDescription + ">\n";
+
   if ( definition )
   {
     std::string const functionTemplate =
-      R"(  template <${typenameT})"
-#ifdef NEEDS_DISPATCH
-      R"(typename Dispatch)"
-#endif
-      ">\n  " HEADER_MACRO
+      "${templateDescription}  " HEADER_MACRO
       R"(_INLINE void ${className}${classSeparator}${commandName}( ${argumentList} ) const ${noexcept}
   {${vectorSizeCheck}
     )"
@@ -5536,7 +5542,7 @@ std::string VulkanHppGenerator::constructCommandVoid( std::string const &       
         { "classSeparator", commandData.handle.empty() ? "" : "::" },
         { "commandName", commandName },
         { "noexcept", noexceptString },
-        { "typenameT", typenameT },
+        { "templateDescription", templateDescription },
         { "vectorSizeCheck",
           vectorSizeCheck.first
             ? constructVectorSizeCheck( name, commandData, vectorSizeCheck.second, skippedParameters )
