@@ -4308,7 +4308,7 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
 #ifdef NEEDS_DISPATCH
       ", Dispatch"
 #endif
-      R"(> deleter( ${deleterParameters} );
+      R"(> deleter${deleterParameters};
     return createResultValue<${returnBaseType})"
 #ifdef NEEDS_DISPATCH
       ", Dispatch"
@@ -4362,6 +4362,8 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
     else
       ( deleterParameters += ", " ) += "d";
 #endif
+    if (!deleterParameters.empty())
+        deleterParameters = "( " + deleterParameters + " )";
 
     return replaceWithMap(
       functionTemplate,
