@@ -7037,11 +7037,11 @@ void VulkanHppGenerator::appendUniqueTypes( std::string &                 str,
     std::tie( enter, leave ) = generateProtection( handleIt->first, !handleIt->second.alias.empty() );
 
     str += enter +
-           "  "
+           "  template <"
 #ifdef NEEDS_DISPATCH
-           "template <typename Dispatch> "
+           "typename Dispatch"
 #endif
-           "class UniqueHandleTraits<" +
+           "> class UniqueHandleTraits<" +
            type +
 #ifdef NEEDS_DISPATCH
            ", Dispatch"
