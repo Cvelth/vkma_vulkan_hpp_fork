@@ -61,6 +61,9 @@
 #ifndef DEFAULT_NAMESPACE
 #  define DEFAULT_NAMESPACE "vk"
 #endif
+#ifndef INSTANCE_HANDLE_NAME
+#  define INSTANCE_HANDLE_NAME "Instance"
+#endif
 
 #ifndef SPEC_API_NAME
 #  define SPEC_API_NAME "vulkan"
@@ -74,6 +77,9 @@
 
 #ifndef NO_DISPATCH
 #  define NEEDS_DISPATCH true
+#endif
+#ifndef NO_ALLOCATION_CALLBACKS
+#  define NEEDS_ALLOCATION_CALLBACKS true
 #endif
 #ifndef NO_VERSION_CHECK
 #  define NEEDS_VERSION_CHECK true
@@ -2697,18 +2703,18 @@ void VulkanHppGenerator::appendHandle( std::string & str, std::pair<std::string,
     {
       auto commandIt = m_commands.find( command );
       assert( commandIt != m_commands.end() );
-      if ( commandIt->first == COMMAND_PREFIX "CreateInstance" )
+      if ( commandIt->first == COMMAND_PREFIX "Create" INSTANCE_HANDLE_NAME )
       {
         // special handling for createInstance, as we need to explicitly place the forward declarations and the
         // deleter classes here
 #if !defined( NDEBUG )
         auto handleIt = m_handles.find( "" );
-        assert( ( handleIt != m_handles.end() ) && ( handleIt->second.childrenHandles.size() == 2 ) );
-        assert( handleIt->second.childrenHandles.find( STRUCT_PREFIX "Instance" ) !=
+        assert( ( handleIt != m_handles.end() ) && ( handleIt->second.childrenHandles.size() <= 2 ) );
+        assert( handleIt->second.childrenHandles.find( STRUCT_PREFIX INSTANCE_HANDLE_NAME ) !=
                 handleIt->second.childrenHandles.end() );
 #endif
 
-        appendUniqueTypes( str, "", { STRUCT_PREFIX "Instance" } );
+        appendUniqueTypes( str, "", { STRUCT_PREFIX INSTANCE_HANDLE_NAME } );
       }
       str += "\n";
       appendCommand( str, commandIt->first, commandIt->second, false );
@@ -2740,8 +2746,9 @@ void VulkanHppGenerator::appendHandle( std::string & str, std::pair<std::string,
       appendCommand( commands, commandIt->first, commandIt->second, false );
 
       // special handling for destroy functions
-      if ( ( ( commandIt->first.substr( 2, 7 ) == "Destroy" ) && ( commandName != "destroy" ) ) ||
-           ( commandIt->first.substr( 2, 4 ) == "Free" ) ||
+      if ( ( ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 7 ) == "Destroy" ) &&
+             ( commandName != "destroy" ) ) ||
+           ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 4 ) == "Free" ) ||
            ( commandIt->first == COMMAND_PREFIX "ReleasePerformanceConfigurationINTEL" ) )
       {
         std::string destroyCommandString;
@@ -2755,11 +2762,11 @@ void VulkanHppGenerator::appendHandle( std::string & str, std::pair<std::string,
         }
         appendCommand( destroyCommandString, commandIt->first, commandData, false );
         std::string shortenedName;
-        if ( commandIt->first.substr( 2, 7 ) == "Destroy" )
+        if ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 7 ) == "Destroy" )
         {
           shortenedName = "destroy";
         }
-        else if ( commandIt->first.substr( 2, 4 ) == "Free" )
+        else if ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 4 ) == "Free" )
         {
           shortenedName = "free";
         }
@@ -2774,18 +2781,22 @@ void VulkanHppGenerator::appendHandle( std::string & str, std::pair<std::string,
           destroyCommandString.replace( pos, commandName.length(), shortenedName );
           pos = destroyCommandString.find( commandName, pos );
         }
+
         // we need to remove the default argument for the first argument, to prevent ambiguities!
-        assert( 1 < commandIt->second.params.size() );
-        pos =
-          destroyCommandString.find( commandIt->second.params[1].name );  // skip the standard version of the function
-        assert( pos != std::string::npos );
-        pos = destroyCommandString.find( commandIt->second.params[1].name,
-                                         pos + 1 );  // get the argument to destroy in the advanced version
-        assert( pos != std::string::npos );
-        pos = destroyCommandString.find( " " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT", pos );
-        if ( pos != std::string::npos )
+        if ( 1 < commandIt->second.params.size() )
         {
-          destroyCommandString.erase( pos, strlen( " " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT" ) );
+          size_t new_pos = destroyCommandString.find( commandIt->second.params[1].name );
+          assert( new_pos != std::string::npos );
+          while ( new_pos != std::string::npos )
+          {
+            pos     = new_pos;
+            new_pos = destroyCommandString.find( commandIt->second.params[1].name, new_pos + 1 );
+          }
+          pos = destroyCommandString.find( " " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT", pos );
+          if ( pos != std::string::npos )
+          {
+            destroyCommandString.erase( pos, strlen( " " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT" ) );
+          }
         }
         commands += "\n" + destroyCommandString;
       }
@@ -3000,8 +3011,9 @@ void VulkanHppGenerator::appendHandlesCommandDefinitions( std::string & str ) co
 
       // special handling for destroy functions
       std::string commandName = determineCommandName( commandIt->first, commandIt->second.params[0].type.type );
-      if ( ( ( commandIt->first.substr( 2, 7 ) == "Destroy" ) && ( commandName != "destroy" ) ) ||
-           ( commandIt->first.substr( 2, 4 ) == "Free" ) ||
+      if ( ( ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 7 ) == "Destroy" ) &&
+             ( commandName != "destroy" ) ) ||
+           ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 4 ) == "Free" ) ||
            ( commandIt->first == COMMAND_PREFIX "ReleasePerformanceConfigurationINTEL" ) )
       {
         std::string destroyCommandString;
@@ -3018,11 +3030,11 @@ void VulkanHppGenerator::appendHandlesCommandDefinitions( std::string & str ) co
 
         appendCommand( destroyCommandString, commandIt->first, commandData, true );
         std::string shortenedName;
-        if ( commandIt->first.substr( 2, 7 ) == "Destroy" )
+        if ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 7 ) == "Destroy" )
         {
           shortenedName = "destroy";
         }
-        else if ( commandIt->first.substr( 2, 4 ) == "Free" )
+        else if ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 4 ) == "Free" )
         {
           shortenedName = "free";
         }
@@ -5505,7 +5517,7 @@ std::string VulkanHppGenerator::constructCommandVoid( std::string const &       
   std::string commandName = determineCommandName( name, commandData.params[0].type.type );
   std::string typenameT   = ( ( vectorParamIndices.size() == 1 ) &&
                             ( commandData.params[vectorParamIndices.begin()->first].type.type == "void" ) )
-                              ? "typename T, "
+                              ? "typename T"
                               : "";
   std::pair<bool, std::map<size_t, std::vector<size_t>>> vectorSizeCheck = needsVectorSizeCheck( vectorParamIndices );
   std::string                                            noexceptString =
@@ -5551,7 +5563,8 @@ std::string VulkanHppGenerator::constructCommandVoid( std::string const &       
   }
   else
   {
-    std::string const functionTemplate = "${templateDescription}  void ${commandName}( ${argumentList} ) const ${noexcept};";
+    std::string const functionTemplate =
+      "${templateDescription}  void ${commandName}( ${argumentList} ) const ${noexcept};";
 
     std::string templateDescription = typenameT;
 #ifdef NEEDS_DISPATCH
@@ -7012,9 +7025,10 @@ void VulkanHppGenerator::appendUniqueTypes( std::string &                 str,
     auto handleIt = m_handles.find( childType );
     assert( handleIt != m_handles.end() );
 
-    std::string type          = stripPrefix( childType, STRUCT_PREFIX );
-    std::string deleterType   = handleIt->second.deletePool.empty() ? "Object" : "Pool";
-    std::string deleterAction = ( handleIt->second.deleteCommand.substr( 2, 4 ) == "Free" ) ? "Free" : "Destroy";
+    std::string type        = stripPrefix( childType, STRUCT_PREFIX );
+    std::string deleterType = handleIt->second.deletePool.empty() ? "Object" : "Pool";
+    std::string deleterAction =
+      ( handleIt->second.deleteCommand.substr( sizeof( COMMAND_PREFIX ) - 1, 4 ) == "Free" ) ? "Free" : "Destroy";
     std::string deleterParent = parentType.empty() ? "NoParent" : stripPrefix( parentType, STRUCT_PREFIX );
     std::string deleterPool =
       handleIt->second.deletePool.empty() ? "" : ", " + stripPrefix( handleIt->second.deletePool, STRUCT_PREFIX );
@@ -10255,12 +10269,14 @@ void VulkanHppGenerator::readTypes( tinyxml2::XMLElement const * element )
 void VulkanHppGenerator::registerDeleter( std::string const &                         name,
                                           std::pair<std::string, CommandData> const & commandData )
 {
-  if ( ( commandData.first.substr( 2, 7 ) == "Destroy" ) || ( commandData.first.substr( 2, 4 ) == "Free" ) )
+  if ( ( commandData.first.substr( sizeof( COMMAND_PREFIX ) - 1, 7 ) == "Destroy" ) ||
+       ( commandData.first.substr( sizeof( COMMAND_PREFIX ) - 1, 4 ) == "Free" ) )
   {
     std::string key;
     size_t      valueIndex;
     switch ( commandData.second.params.size() )
     {
+#ifdef NEEDS_ALLOCATION_CALLBACKS
       case 2:
       case 3:
         assert( commandData.second.params.back().type.type == STRUCT_PREFIX "AllocationCallbacks" );
@@ -10274,17 +10290,33 @@ void VulkanHppGenerator::registerDeleter( std::string const &                   
         m_handles.find( commandData.second.params[valueIndex].type.type )->second.deletePool =
           commandData.second.params[1].type.type;
         break;
+#else
+      case 1:
+      case 2:
+        key        = ( commandData.second.params.size() == 1 ) ? "" : commandData.second.params[0].type.type;
+        valueIndex = commandData.second.params.size() - 1;
+        break;
+      case 3:
+        key        = commandData.second.params[0].type.type;
+        valueIndex = 2;
+        assert( m_handles.find( commandData.second.params[valueIndex].type.type ) != m_handles.end() );
+        if ( commandData.second.params[1].type.type != "size_t" )
+          m_handles.find( commandData.second.params[valueIndex].type.type )->second.deletePool =
+            commandData.second.params[1].type.type;
+        break;
+#endif
       default: assert( false ); valueIndex = 0;
     }
     auto keyHandleIt = m_handles.find( key );
-    assert( ( keyHandleIt != m_handles.end() ) &&
-            ( keyHandleIt->second.childrenHandles.find( commandData.second.params[valueIndex].type.type ) ==
-              keyHandleIt->second.childrenHandles.end() ) );
-    keyHandleIt->second.childrenHandles.insert( commandData.second.params[valueIndex].type.type );
-
-    auto handleIt = m_handles.find( commandData.second.params[valueIndex].type.type );
-    assert( handleIt != m_handles.end() );
-    handleIt->second.deleteCommand = name;
+    auto handleIt    = m_handles.find( commandData.second.params[valueIndex].type.type );
+    if ( ( keyHandleIt != m_handles.end() ) &&
+         ( keyHandleIt->second.childrenHandles.find( commandData.second.params[valueIndex].type.type ) ==
+           keyHandleIt->second.childrenHandles.end() ) &&
+         ( handleIt != m_handles.end() ) )
+    {
+      keyHandleIt->second.childrenHandles.insert( commandData.second.params[valueIndex].type.type );
+      handleIt->second.deleteCommand = name;
+    }
   }
 }
 
@@ -10529,11 +10561,21 @@ int main( int argc, char ** argv )
       , m_ptr( nullptr )
     {}
 
+    ArrayProxyNoTemporaries( T & value ) )" HEADER_MACRO R"(_NOEXCEPT
+      : m_count( 1 )
+      , m_ptr( &value )
+    {}
+
+    ArrayProxyNoTemporaries( T && value ) = delete;
+
     template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
     ArrayProxyNoTemporaries( typename std::remove_const<T>::type & value ) )" HEADER_MACRO R"(_NOEXCEPT
       : m_count( 1 )
       , m_ptr( &value )
     {}
+
+    template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( typename std::remove_const<T>::type && value ) = delete;
 
     ArrayProxyNoTemporaries( uint32_t count, T * ptr ) )" HEADER_MACRO R"(_NOEXCEPT
       : m_count( count )
@@ -10551,6 +10593,8 @@ int main( int argc, char ** argv )
       , m_ptr( list.begin() )
     {}
 
+    ArrayProxyNoTemporaries( std::initializer_list<T> const && list ) = delete;
+
     template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
     ArrayProxyNoTemporaries( std::initializer_list<typename std::remove_const<T>::type> const & list ) )" HEADER_MACRO
                                              R"(_NOEXCEPT
@@ -10558,10 +10602,15 @@ int main( int argc, char ** argv )
       , m_ptr( list.begin() )
     {}
 
+    template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( std::initializer_list<typename std::remove_const<T>::type> const && list ) = delete;
+
     ArrayProxyNoTemporaries( std::initializer_list<T> & list ) )" HEADER_MACRO R"(_NOEXCEPT
       : m_count( static_cast<uint32_t>( list.size() ) )
       , m_ptr( list.begin() )
     {}
+
+    ArrayProxyNoTemporaries( std::initializer_list<T> && list ) = delete;
 
     template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
     ArrayProxyNoTemporaries( std::initializer_list<typename std::remove_const<T>::type> & list ) )" HEADER_MACRO
@@ -10570,14 +10619,17 @@ int main( int argc, char ** argv )
       , m_ptr( list.begin() )
     {}
 
-    ArrayProxyNoTemporaries( std::initializer_list<T> const && list ) )" HEADER_MACRO R"(_NOEXCEPT = delete;
-    ArrayProxyNoTemporaries( std::initializer_list<T> && list ) )" HEADER_MACRO R"(_NOEXCEPT       = delete;
+    template <typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( std::initializer_list<typename std::remove_const<T>::type> && list ) = delete;
 
     template <size_t N>
     ArrayProxyNoTemporaries( std::array<T, N> const & data ) )" HEADER_MACRO R"(_NOEXCEPT
       : m_count( N )
       , m_ptr( data.data() )
     {}
+
+    template <size_t N>
+    ArrayProxyNoTemporaries( std::array<T, N> const && data ) = delete;
 
     template <size_t N, typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
     ArrayProxyNoTemporaries( std::array<typename std::remove_const<T>::type, N> const & data ) )" HEADER_MACRO
@@ -10586,11 +10638,17 @@ int main( int argc, char ** argv )
       , m_ptr( data.data() )
     {}
 
+    template <size_t N, typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( std::array<typename std::remove_const<T>::type, N> const && data ) = delete;
+
     template <size_t N>
     ArrayProxyNoTemporaries( std::array<T, N> & data ) )" HEADER_MACRO R"(_NOEXCEPT
       : m_count( N )
       , m_ptr( data.data() )
     {}
+
+    template <size_t N>
+    ArrayProxyNoTemporaries( std::array<T, N> && data ) = delete;
 
     template <size_t N, typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
     ArrayProxyNoTemporaries( std::array<typename std::remove_const<T>::type, N> & data ) )" HEADER_MACRO R"(_NOEXCEPT
@@ -10598,16 +10656,17 @@ int main( int argc, char ** argv )
       , m_ptr( data.data() )
     {}
 
-    template <size_t N>
-    ArrayProxyNoTemporaries( std::array<T, N> const && data ) )" HEADER_MACRO R"(_NOEXCEPT = delete;
-    template <size_t N>
-    ArrayProxyNoTemporaries( std::array<T, N> && data ) )" HEADER_MACRO R"(_NOEXCEPT       = delete;
+    template <size_t N, typename B = T, typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( std::array<typename std::remove_const<T>::type, N> && data ) = delete;
 
     template <class Allocator = std::allocator<typename std::remove_const<T>::type>>
     ArrayProxyNoTemporaries( std::vector<T, Allocator> const & data ) )" HEADER_MACRO R"(_NOEXCEPT
       : m_count( static_cast<uint32_t>( data.size() ) )
       , m_ptr( data.data() )
     {}
+
+    template <class Allocator = std::allocator<typename std::remove_const<T>::type>>
+    ArrayProxyNoTemporaries( std::vector<T, Allocator> const && data ) = delete;
 
     template <class Allocator = std::allocator<typename std::remove_const<T>::type>,
               typename B      = T,
@@ -10618,11 +10677,19 @@ int main( int argc, char ** argv )
       , m_ptr( data.data() )
     {}
 
+    template <class Allocator = std::allocator<typename std::remove_const<T>::type>,
+              typename B      = T,
+              typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( std::vector<typename std::remove_const<T>::type, Allocator> const && data ) = delete;
+
     template <class Allocator = std::allocator<typename std::remove_const<T>::type>>
     ArrayProxyNoTemporaries( std::vector<T, Allocator> & data ) )" HEADER_MACRO R"(_NOEXCEPT
       : m_count( static_cast<uint32_t>( data.size() ) )
       , m_ptr( data.data() )
     {}
+
+    template <class Allocator = std::allocator<typename std::remove_const<T>::type>>
+    ArrayProxyNoTemporaries( std::vector<T, Allocator> && data ) = delete;
 
     template <class Allocator = std::allocator<typename std::remove_const<T>::type>,
               typename B      = T,
@@ -10633,8 +10700,10 @@ int main( int argc, char ** argv )
       , m_ptr( data.data() )
     {}
 
-    ArrayProxyNoTemporaries( std::vector<T> const && data ) )" HEADER_MACRO R"(_NOEXCEPT = delete;
-    ArrayProxyNoTemporaries( std::vector<T> && data ) )" HEADER_MACRO R"(_NOEXCEPT       = delete;
+    template <class Allocator = std::allocator<typename std::remove_const<T>::type>,
+              typename B      = T,
+              typename std::enable_if<std::is_const<B>::value, int>::type = 0>
+    ArrayProxyNoTemporaries( std::vector<typename std::remove_const<T>::type, Allocator> && data ) = delete;
 
     const T * begin() const )" HEADER_MACRO R"(_NOEXCEPT
     {
