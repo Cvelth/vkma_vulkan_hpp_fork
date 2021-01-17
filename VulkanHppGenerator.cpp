@@ -5511,16 +5511,6 @@ std::string VulkanHppGenerator::constructCommandVoid( std::string const &       
   std::string                                            noexceptString =
     vectorSizeCheck.first ? HEADER_MACRO "_NOEXCEPT_WHEN_NO_EXCEPTIONS" : HEADER_MACRO "_NOEXCEPT";
 
-  std::string templateDescription = typenameT;
-#ifdef NEEDS_DISPATCH
-  if ( !templateDescription.empty() )
-    templateDescription += ", typename Dispatch";
-  else
-    templateDescription = "typename Dispatch";
-#endif
-  if ( !templateDescription.empty() )
-    templateDescription = "  template <" + templateDescription + ">\n";
-
   if ( definition )
   {
     std::string const functionTemplate =
@@ -5533,6 +5523,16 @@ std::string VulkanHppGenerator::constructCommandVoid( std::string const &       
 #endif
       R"(${vkCommand}( ${callArguments} );
   })";
+
+    std::string templateDescription = typenameT;
+#ifdef NEEDS_DISPATCH
+    if ( !templateDescription.empty() )
+      templateDescription += ", typename Dispatch";
+    else
+      templateDescription = "typename Dispatch";
+#endif
+    if ( !templateDescription.empty() )
+      templateDescription = "  template <" + templateDescription + ">\n";
 
     return replaceWithMap(
       functionTemplate,
@@ -5551,18 +5551,23 @@ std::string VulkanHppGenerator::constructCommandVoid( std::string const &       
   }
   else
   {
-    std::string const functionTemplate = R"(  template <${typenameT})"
+    std::string const functionTemplate = "${templateDescription}  void ${commandName}( ${argumentList} ) const ${noexcept};";
+
+    std::string templateDescription = typenameT;
 #ifdef NEEDS_DISPATCH
-                                         R"(typename Dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER_TYPE)"
+    if ( !templateDescription.empty() )
+      templateDescription += ", typename Dispatch = " HEADER_MACRO "_DEFAULT_DISPATCHER_TYPE";
+    else
+      templateDescription = "typename Dispatch = " HEADER_MACRO "_DEFAULT_DISPATCHER_TYPE";
 #endif
-                                         ">\n"
-                                         R"(void ${commandName}( ${argumentList} ) const ${noexcept};)";
+    if ( !templateDescription.empty() )
+      templateDescription = "  template <" + templateDescription + ">\n";
 
     return replaceWithMap( functionTemplate,
                            { { "argumentList", argumentList },
                              { "commandName", commandName },
                              { "noexcept", noexceptString },
-                             { "typenameT", typenameT } } );
+                             { "templateDescription", templateDescription } } );
   }
 }
 
