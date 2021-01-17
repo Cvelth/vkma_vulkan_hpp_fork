@@ -4330,7 +4330,7 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
         throw std::runtime_error( "Found " + name + " which requires special handling for the object deleter" );
       }
     }
-    else if ( name.find( "Allocate" ) != std::string::npos )
+    else if ( ( name.find( "Allocate" ) != std::string::npos ) || ( name.find( "Allocation" ) != std::string::npos ) )
     {
       objectDeleter = "ObjectFree";
       allocator     = "allocator";
@@ -4349,11 +4349,13 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
         ? "NoParent"
         : className;
     std::string deleterParameters = ( parentName == "NoParent" ) ? "" : "*this";
+#ifdef NEEDS_ALLOCATION_CALLBACKS
     if ( !allocator.empty() )
       if ( deleterParameters.empty() )
         deleterParameters = allocator;
       else
         ( deleterParameters += ", " ) += allocator;
+#endif
 #ifdef NEEDS_DISPATCH
     if ( deleterParameters.empty() )
       deleterParameters = "d";
@@ -5101,7 +5103,10 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUnique(
 #ifdef NEEDS_DISPATCH
                             ", Dispatch" +
 #endif
-                            "> deleter( *this, allocator"
+                            "> deleter( *this"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+                            ", allocator"
+#endif
 #ifdef NEEDS_DISPATCH
                             ", d"
 #endif
@@ -5250,7 +5255,10 @@ std::string VulkanHppGenerator::constructCommandResultGetVectorOfHandlesUniqueSi
 #ifdef NEEDS_DISPATCH
       ", Dispatch"
 #endif
-      R"(> deleter( *this, allocator)"
+      R"(> deleter( *this)"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+      ", allocator"
+#endif
 #ifdef NEEDS_DISPATCH
       ", d"
 #endif
@@ -7467,7 +7475,7 @@ std::string VulkanHppGenerator::determineEnhancedReturnType( CommandData const &
                                                       // a vector of StrutureChains
 #endif
            : "std::vector<" + stripPrefix( commandData.params[returnParamIndex].type.type, STRUCT_PREFIX ) +
-               ",Allocator>";  // for the other parameters, we use a vector of the pure type
+               ", Allocator>";  // for the other parameters, we use a vector of the pure type
 #ifndef NEEDS_STRUCTURE_CHAIN
   static_cast<void>( isStructureChain );
 #endif
@@ -11078,39 +11086,53 @@ int main( int argc, char ** argv )
   }
 )";
 
-  static const std::string classObjectDestroy = R"(
-  struct AllocationCallbacks;
+  static const std::string classObjectDestroy =
+    "\n"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+    "struct AllocationCallbacks;"
+#endif
+    R"( 
 
   template <typename OwnerType)"
 #ifdef NEEDS_DISPATCH
-                                                ", typename Dispatch"
+    ", typename Dispatch"
 #endif
-                                                R"(>
+    R"(>
   class ObjectDestroy
   {
     public:
     ObjectDestroy() = default;
 
-    ObjectDestroy( OwnerType owner,
-                   Optional<const AllocationCallbacks> allocationCallbacks
-                                    )" HEADER_MACRO R"(_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT)"
+    ObjectDestroy( OwnerType owner)"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+    R"(,
+                   Optional<const AllocationCallbacks> allocationCallbacks )" HEADER_MACRO
+    R"(_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT)"
+#endif
 #ifdef NEEDS_DISPATCH
-                                                R"(,
+    R"(,
                    Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
 #endif
-                                                " ) " HEADER_MACRO R"(_NOEXCEPT
-      : m_owner( owner )
+    " ) " HEADER_MACRO R"(_NOEXCEPT
+      : m_owner( owner ))"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+    R"(
       , m_allocationCallbacks( allocationCallbacks ))"
+#endif
 #ifdef NEEDS_DISPATCH
-                                                R"(
+    R"(
       , m_dispatch( &dispatch ))"
 #endif
-                                                R"(
+    R"(
     {}
 
-      OwnerType getOwner() const )" HEADER_MACRO R"(_NOEXCEPT { return m_owner; }
+      OwnerType getOwner() const )" HEADER_MACRO R"(_NOEXCEPT { return m_owner; })"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+    R"(
       Optional<const AllocationCallbacks> getAllocator() const )" HEADER_MACRO
-                                                R"(_NOEXCEPT { return m_allocationCallbacks; }
+    R"(_NOEXCEPT { return m_allocationCallbacks; })"
+#endif
+    R"(
 
     protected:
       template <typename T>
@@ -11118,57 +11140,74 @@ int main( int argc, char ** argv )
       {
         )" HEADER_MACRO R"(_ASSERT( m_owner)"
 #ifdef NEEDS_DISPATCH
-                                                " && m_dispatch"
+    " && m_dispatch"
 #endif
-                                                R"( );
-        m_owner.destroy( t, m_allocationCallbacks)"
+    R"( );
+        m_owner.destroy( t)"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+    ", m_allocationCallbacks"
+#endif
 #ifdef NEEDS_DISPATCH
-                                                ", *m_dispatch"
+    ", *m_dispatch"
 #endif
-                                                R"( );
+    R"( );
       }
 
     private:
-    OwnerType                           m_owner               = {};
-    Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;)"
-#ifdef NEEDS_DISPATCH
-                                                "\nDispatch const *                    m_dispatch            = nullptr;"
+    OwnerType                           m_owner               = {};)"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+    "\nOptional<const AllocationCallbacks> m_allocationCallbacks = nullptr;"
 #endif
-                                                R"(
+#ifdef NEEDS_DISPATCH
+    "\nDispatch const *                    m_dispatch            = nullptr;"
+#endif
+    R"(
   };
 
   class NoParent;
 
   template <)"
 #ifdef NEEDS_DISPATCH
-                                                "typename Dispatch"
+    "typename Dispatch"
 #endif
-                                                ">\n"
-                                                R"(  class ObjectDestroy<NoParent)"
+    ">\n"
+    R"(  class ObjectDestroy<NoParent)"
 #ifdef NEEDS_DISPATCH
-                                                ", Dispatch"
+    ", Dispatch"
 #endif
-                                                R"(>
+    R"(>
   {
     public:
     ObjectDestroy() = default;
 
-    ObjectDestroy( Optional<const AllocationCallbacks> allocationCallbacks)"
-#ifdef NEEDS_DISPATCH
-                                                R"(,
-                   Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
+    ObjectDestroy( )"
+#if defined( NEEDS_ALLOCATION_CALLBACKS ) && defined( NEEDS_DISPATCH )
+    "                   Optional<const AllocationCallbacks> allocationCallbacks,\n"
+    "                   Dispatch const & dispatch = " HEADER_MACRO
+    "_DEFAULT_DISPATCHER"
+#elif defined( NEEDS_ALLOCATION_CALLBACKS )
+    "                   Optional<const AllocationCallbacks> allocationCallbacks"
+#elif defined( NEEDS_DISPATCH )
+    "                   Dispatch const & dispatch = " HEADER_MACRO
+    "_DEFAULT_DISPATCHER"
 #endif
-                                                " ) " HEADER_MACRO R"(_NOEXCEPT
-      : m_allocationCallbacks( allocationCallbacks ))"
-#ifdef NEEDS_DISPATCH
-                                                R"(
-      , m_dispatch( &dispatch ))"
+    " ) " HEADER_MACRO "_NOEXCEPT"
+#if defined( NEEDS_ALLOCATION_CALLBACKS ) && defined( NEEDS_DISPATCH )
+    "      : m_allocationCallbacks( allocationCallbacks ), m_dispatch( &dispatch )"
+#elif defined( NEEDS_ALLOCATION_CALLBACKS )
+    "      : m_allocationCallbacks( allocationCallbacks )"
+#elif defined( NEEDS_DISPATCH )
+    "      : m_dispatch( &dispatch )"
 #endif
-                                                R"(
+    R"(
     {}
-
+)"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+    R"(
       Optional<const AllocationCallbacks> getAllocator() const )" HEADER_MACRO
-                                                R"(_NOEXCEPT { return m_allocationCallbacks; }
+    R"(_NOEXCEPT { return m_allocationCallbacks; })"
+#endif
+    R"(
 
     protected:
       template <typename T>
@@ -11177,61 +11216,76 @@ int main( int argc, char ** argv )
         )"
 #ifdef NEEDS_DISPATCH
     HEADER_MACRO R"(_ASSERT( m_dispatch );)"
-                                                "\n        "
+    "\n        "
 #endif
-                                                "t.destroy( m_allocationCallbacks"
-#ifdef NEEDS_DISPATCH
-                                                ", *m_dispatch"
+    "t.destroy( "
+#if defined( NEEDS_ALLOCATION_CALLBACKS ) && defined( NEEDS_DISPATCH )
+    "m_allocationCallbacks, *m_dispatch"
+#elif defined( NEEDS_ALLOCATION_CALLBACKS )
+    "m_allocationCallbacks"
+#elif defined( NEEDS_DISPATCH )
+    "*m_dispatch"
 #endif
-                                                R"( );
+    R"( );
       }
 
-    private:
-    Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;)"
-#ifdef NEEDS_DISPATCH
-                                                "\nDispatch const *                    m_dispatch            = nullptr;"
+    private:)"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+    "\nOptional<const AllocationCallbacks> m_allocationCallbacks = nullptr;"
 #endif
-                                                R"(
+#ifdef NEEDS_DISPATCH
+    "\nDispatch const *                    m_dispatch            = nullptr;"
+#endif
+    R"(
   };
 )";
 
-  static const std::string classObjectFree = R"(
+  static const std::string classObjectFree =
+    R"(
   template <typename OwnerType)"
 #ifdef NEEDS_DISPATCH
-                                             ", typename Dispatch"
+    ", typename Dispatch"
 #endif
-                                             R"(>
+    R"(>
   class ObjectFree
   {
   public:
     ObjectFree() = default;
 
-    ObjectFree( OwnerType owner,
+    ObjectFree( OwnerType owner)"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+    R"(,
                 Optional<const AllocationCallbacks> allocationCallbacks )" HEADER_MACRO
-                                             R"(_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT)"
-#ifdef NEEDS_DISPATCH
-                                             R"(,
-                Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
+    R"(_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT)"
 #endif
-                                             " ) " HEADER_MACRO R"(_NOEXCEPT
-      : m_owner( owner )
-      , m_allocationCallbacks( allocationCallbacks ))"
 #ifdef NEEDS_DISPATCH
-                                             R"(
+    R"(,
+                   Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
+#endif
+    " ) " HEADER_MACRO R"(_NOEXCEPT
+      : m_owner( owner ))"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+    R"(
+      , m_allocationCallbacks( allocationCallbacks ))"
+#endif
+#ifdef NEEDS_DISPATCH
+    R"(
       , m_dispatch( &dispatch ))"
 #endif
-                                             R"(
+    R"(
     {}
 
     OwnerType getOwner() const )" HEADER_MACRO R"(_NOEXCEPT
     {
       return m_owner;
     }
-
-    Optional<const AllocationCallbacks> getAllocator() const )" HEADER_MACRO R"(_NOEXCEPT
-    {
-      return m_allocationCallbacks;
-    }
+)"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+    R"(
+      Optional<const AllocationCallbacks> getAllocator() const )" HEADER_MACRO
+    R"(_NOEXCEPT { return m_allocationCallbacks; })"
+#endif
+    R"(
 
   protected:
     template <typename T>
@@ -11239,23 +11293,28 @@ int main( int argc, char ** argv )
     {
       )" HEADER_MACRO R"(_ASSERT( m_owner)"
 #ifdef NEEDS_DISPATCH
-                                             " && m_dispatch"
+    " && m_dispatch"
 #endif
-                                             R"( );
-      m_owner.free( t, m_allocationCallbacks)"
+    R"( );
+      m_owner.free( t)"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+    ", m_allocationCallbacks"
+#endif
 #ifdef NEEDS_DISPATCH
-                                             ", *m_dispatch"
+    ", *m_dispatch"
 #endif
-                                             R"( );
+    R"( );
     }
 
   private:
-    OwnerType                           m_owner               = {};
-    Optional<const AllocationCallbacks> m_allocationCallbacks = nullptr;)"
-#ifdef NEEDS_DISPATCH
-                                             "\nDispatch const *                    m_dispatch            = nullptr;"
+    OwnerType                           m_owner               = {};)"
+#ifdef NEEDS_ALLOCATION_CALLBACKS
+    "\nOptional<const AllocationCallbacks> m_allocationCallbacks = nullptr;"
 #endif
-                                             R"(
+#ifdef NEEDS_DISPATCH
+    "\nDispatch const *                    m_dispatch            = nullptr;"
+#endif
+    R"(
   };
 )";
 
