@@ -105,6 +105,10 @@
 #  define NEEDS_INDEX_TYPE_TRAITS true
 #endif
 
+#ifdef ENABLE_OBJECT_END_DELETER
+#  define NEEDS_OBJECT_END_DELETER true
+#endif
+
 void             appendArgumentCount( std::string &       str,
                                       size_t              vectorIndex,
                                       std::string const & vectorName,
@@ -2758,6 +2762,9 @@ void VulkanHppGenerator::appendHandle( std::string & str, std::pair<std::string,
       if ( ( ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 7 ) == "Destroy" ) &&
              ( commandName != "destroy" ) ) ||
            ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 4 ) == "Free" ) ||
+#ifdef NEEDS_OBJECT_END_DELETER
+           ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 3 ) == "End" ) ||
+#endif
            ( commandIt->first == COMMAND_PREFIX "ReleasePerformanceConfigurationINTEL" ) )
       {
         std::string destroyCommandString;
@@ -2779,6 +2786,12 @@ void VulkanHppGenerator::appendHandle( std::string & str, std::pair<std::string,
         {
           shortenedName = "free";
         }
+#ifdef NEEDS_OBJECT_END_DELETER
+        else if ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 3 ) == "End" )
+        {
+          shortenedName = "end";
+        }
+#endif
         else
         {
           assert( commandIt->first == COMMAND_PREFIX "ReleasePerformanceConfigurationINTEL" );
@@ -3023,6 +3036,9 @@ void VulkanHppGenerator::appendHandlesCommandDefinitions( std::string & str ) co
       if ( ( ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 7 ) == "Destroy" ) &&
              ( commandName != "destroy" ) ) ||
            ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 4 ) == "Free" ) ||
+#ifdef NEEDS_OBJECT_END_DELETER
+           ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 3 ) == "End" ) ||
+#endif
            ( commandIt->first == COMMAND_PREFIX "ReleasePerformanceConfigurationINTEL" ) )
       {
         std::string destroyCommandString;
@@ -3047,6 +3063,12 @@ void VulkanHppGenerator::appendHandlesCommandDefinitions( std::string & str ) co
         {
           shortenedName = "free";
         }
+#ifdef NEEDS_OBJECT_END_DELETER
+        else if ( commandIt->first.substr( sizeof( COMMAND_PREFIX ) - 1, 3 ) == "End" )
+        {
+          shortenedName = "end";
+        }
+#endif
         else
         {
           assert( commandIt->first == COMMAND_PREFIX "ReleasePerformanceConfigurationINTEL" );
@@ -4342,6 +4364,11 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
     else if ( ( name.find( "Allocate" ) != std::string::npos ) || ( name.find( "Allocation" ) != std::string::npos ) )
     {
       objectDeleter = "ObjectFree";
+      allocator     = "allocator";
+    }
+    else if ( name.find( "Begin" ) != std::string::npos )
+    {
+      objectDeleter = "ObjectEnd";
       allocator     = "allocator";
     }
     else
@@ -7047,8 +7074,15 @@ void VulkanHppGenerator::appendUniqueTypes( std::string &                 str,
 
     std::string type        = stripPrefix( childType, STRUCT_PREFIX );
     std::string deleterType = handleIt->second.deletePool.empty() ? "Object" : "Pool";
-    std::string deleterAction =
-      ( handleIt->second.deleteCommand.substr( sizeof( COMMAND_PREFIX ) - 1, 4 ) == "Free" ) ? "Free" : "Destroy";
+    std::string deleterAction;
+    if ( handleIt->second.deleteCommand.substr( sizeof( COMMAND_PREFIX ) - 1, 4 ) == "Free" )
+      deleterAction = "Free";
+#ifdef NEEDS_OBJECT_END_DELETER
+    else if ( handleIt->second.deleteCommand.substr( sizeof( COMMAND_PREFIX ) - 1, 3 ) == "End" )
+      deleterAction = "End";
+#endif
+    else
+      deleterAction = "Destroy";
     std::string deleterParent = parentType.empty() ? "NoParent" : stripPrefix( parentType, STRUCT_PREFIX );
     std::string deleterPool =
       handleIt->second.deletePool.empty() ? "" : ", " + stripPrefix( handleIt->second.deletePool, STRUCT_PREFIX );
@@ -10290,7 +10324,11 @@ void VulkanHppGenerator::registerDeleter( std::string const &                   
                                           std::pair<std::string, CommandData> const & commandData )
 {
   if ( ( commandData.first.substr( sizeof( COMMAND_PREFIX ) - 1, 7 ) == "Destroy" ) ||
-       ( commandData.first.substr( sizeof( COMMAND_PREFIX ) - 1, 4 ) == "Free" ) )
+       ( commandData.first.substr( sizeof( COMMAND_PREFIX ) - 1, 4 ) == "Free" )
+#ifdef NEEDS_OBJECT_END_DELETER
+       || ( commandData.first.substr( sizeof( COMMAND_PREFIX ) - 1, 3 ) == "End" )
+#endif
+  )
   {
     std::string key;
     size_t      valueIndex;
@@ -11323,6 +11361,86 @@ int main( int argc, char ** argv )
     R"(
   };
 )";
+
+#ifdef NEEDS_OBJECT_END_DELETER
+  static const std::string classObjectEnd =
+    R"(
+  template <typename OwnerType)"
+#  ifdef NEEDS_DISPATCH
+    ", typename Dispatch"
+#  endif
+    R"(>
+  class ObjectEnd
+  {
+  public:
+    ObjectEnd() = default;
+
+    ObjectEnd( OwnerType owner)"
+#  ifdef NEEDS_ALLOCATION_CALLBACKS
+    R"(,
+                Optional<const AllocationCallbacks> allocationCallbacks )" HEADER_MACRO
+    R"(_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT)"
+#  endif
+#  ifdef NEEDS_DISPATCH
+    R"(,
+                   Dispatch const & dispatch = )" HEADER_MACRO R"(_DEFAULT_DISPATCHER)"
+#  endif
+    " ) " HEADER_MACRO R"(_NOEXCEPT
+      : m_owner( owner ))"
+#  ifdef NEEDS_ALLOCATION_CALLBACKS
+    R"(
+      , m_allocationCallbacks( allocationCallbacks ))"
+#  endif
+#  ifdef NEEDS_DISPATCH
+    R"(
+      , m_dispatch( &dispatch ))"
+#  endif
+    R"(
+    {}
+
+    OwnerType getOwner() const )" HEADER_MACRO R"(_NOEXCEPT
+    {
+      return m_owner;
+    }
+)"
+#  ifdef NEEDS_ALLOCATION_CALLBACKS
+    R"(
+      Optional<const AllocationCallbacks> getAllocator() const )" HEADER_MACRO
+    R"(_NOEXCEPT { return m_allocationCallbacks; })"
+#  endif
+    R"(
+
+  protected:
+    template <typename T>
+    void destroy( T t ) )" HEADER_MACRO R"(_NOEXCEPT
+    {
+      )" HEADER_MACRO R"(_ASSERT( m_owner)"
+#  ifdef NEEDS_DISPATCH
+    " && m_dispatch"
+#  endif
+    R"( );
+      m_owner.end( t)"
+#  ifdef NEEDS_ALLOCATION_CALLBACKS
+    ", m_allocationCallbacks"
+#  endif
+#  ifdef NEEDS_DISPATCH
+    ", *m_dispatch"
+#  endif
+    R"( );
+    }
+
+  private:
+    OwnerType                           m_owner               = {};)"
+#  ifdef NEEDS_ALLOCATION_CALLBACKS
+    "\nOptional<const AllocationCallbacks> m_allocationCallbacks = nullptr;"
+#  endif
+#  ifdef NEEDS_DISPATCH
+    "\nDispatch const *                    m_dispatch            = nullptr;"
+#  endif
+    R"(
+  };
+)";
+#endif
 
   static const std::string classObjectRelease =
     R"(
@@ -12601,7 +12719,11 @@ namespace std
     str += "#define " HEADER_MACRO "_DEFAULT_ARGUMENT_ASSIGNMENT = {}\n# define " HEADER_MACRO
            "_DEFAULT_ARGUMENT_NULLPTR_ASSIGNMENT = nullptr\n";
 #endif
-    str += classObjectDestroy + classObjectFree + classObjectRelease + classPoolFree + "\n";
+    str += classObjectDestroy + classObjectFree +
+#ifdef NEEDS_OBJECT_END_DELETER
+           classObjectEnd +
+#endif
+           classObjectRelease + classPoolFree + "\n";
     generator.appendBaseTypes( str );
     str += typeTraits;
     generator.appendEnums( str );
