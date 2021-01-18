@@ -4362,8 +4362,8 @@ std::string VulkanHppGenerator::constructCommandResultGetHandleUnique( std::stri
     else
       ( deleterParameters += ", " ) += "d";
 #endif
-    if (!deleterParameters.empty())
-        deleterParameters = "( " + deleterParameters + " )";
+    if ( !deleterParameters.empty() )
+      deleterParameters = "( " + deleterParameters + " )";
 
     return replaceWithMap(
       functionTemplate,
@@ -5882,7 +5882,8 @@ std::string VulkanHppGenerator::constructCommandVoidGetValue( std::string const 
   {
     returnType = HEADER_MACRO "_NAMESPACE::" + stripPrefix( returnType, STRUCT_PREFIX );
   }
-  else if ( commandData.params[returnParamIndex].type.isPointerToConstPointer() )
+  else if ( commandData.params[returnParamIndex].type.isPointerToConstPointer() ||
+            commandData.params[returnParamIndex].type.isPointerToNonConstPointer() )
   {
     returnType = commandData.params[returnParamIndex].type.prefix + " " + returnType + "*";
   }
@@ -11183,12 +11184,13 @@ int main( int argc, char ** argv )
     ObjectDestroy() = default;)"
 #if defined( NEEDS_ALLOCATION_CALLBACKS ) && defined( NEEDS_DISPATCH )
     "\n\n    ObjectDestroy( Optional<const AllocationCallbacks> allocationCallbacks,\n"
-    "                   Dispatch const & dispatch = " HEADER_MACRO
-    "_DEFAULT_DISPATCHER ) " HEADER_MACRO "_NOEXCEPT\n"
+    "                   Dispatch const & dispatch = " HEADER_MACRO "_DEFAULT_DISPATCHER ) " HEADER_MACRO
+    "_NOEXCEPT\n"
     "      : m_allocationCallbacks( allocationCallbacks ), m_dispatch( &dispatch )\n"
     "    {}\n"
 #elif defined( NEEDS_ALLOCATION_CALLBACKS )
-    "\n\n    ObjectDestroy( Optional<const AllocationCallbacks> allocationCallbacks ) " HEADER_MACRO "_NOEXCEPT\n"
+    "\n\n    ObjectDestroy( Optional<const AllocationCallbacks> allocationCallbacks ) " HEADER_MACRO
+    "_NOEXCEPT\n"
     "      : m_allocationCallbacks( allocationCallbacks )\n"
     "    {}\n"
 #elif defined( NEEDS_DISPATCH )
