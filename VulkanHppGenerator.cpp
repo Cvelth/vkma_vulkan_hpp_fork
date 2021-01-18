@@ -52,10 +52,15 @@
 #ifndef STRUCT_PREFIX
 #  define STRUCT_PREFIX "Vk"
 #endif
+#ifdef CUSTOM_ENUM_PREFIX
+#  define ENUM_PREFIX CUSTOM_ENUM_PREFIX
+#else
+#  define ENUM_PREFIX MACRO_PREFIX
+#endif
 #ifdef CUSTOM_RESULT_ENUM_PREFIX
 #  define RESULT_ENUM_PREFIX CUSTOM_RESULT_ENUM_PREFIX
 #else
-#  define RESULT_ENUM_PREFIX MACRO_PREFIX
+#  define RESULT_ENUM_PREFIX ENUM_PREFIX
 #endif
 
 #ifndef DEFAULT_NAMESPACE
@@ -482,18 +487,22 @@ std::string getEnumPrefix( int line, std::string const & name, bool bitmask )
   {
     prefix = RESULT_ENUM_PREFIX "_";
   }
-  else if ( bitmask )
-  {
-    // for a bitmask enum, start with <MACRO_PREFIX>, cut off the trailing "FlagBits", and convert that name to upper
-    // case end that with "Bit"
-    size_t pos = name.find( "FlagBits" );
-    check( pos != std::string::npos, line, "bitmask <" + name + "> does not contain <FlagBits>" );
-    prefix = toUpperCase( name.substr( 0, pos ) ) + "_";
-  }
   else
   {
-    // for a non-bitmask enum, convert the name to upper case
-    prefix = toUpperCase( name ) + "_";
+    if ( bitmask )
+    {
+      // for a bitmask enum, start with <ENUM_PREFIX>, cut off the trailing "FlagBits", and convert that name to upper
+      // case end that with "Bit"
+      size_t pos = name.find( "FlagBits" );
+      check( pos != std::string::npos, line, "bitmask <" + name + "> does not contain <FlagBits>" );
+      prefix = toUpperCase( name.substr( 0, pos ) ) + "_";
+    }
+    else
+    {
+      // for a non-bitmask enum, convert the name to upper case
+      prefix = toUpperCase( name ) + "_";
+    }
+    prefix.replace( 0, sizeof( STRUCT_PREFIX ) - 1, ENUM_PREFIX );
   }
   return prefix;
 }
