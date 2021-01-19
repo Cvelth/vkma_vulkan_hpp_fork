@@ -12132,7 +12132,8 @@ int main( int argc, char ** argv )
   }
 )";
 
-  static const std::string includes = R"(
+  static const std::string includes =
+    R"(
 #ifndef )" HEADER_MACRO R"(
 #define )" HEADER_MACRO R"(
 
@@ -12153,8 +12154,12 @@ int main( int argc, char ** argv )
 #else
 #  error ")" HEADER_NAME R"( needs at least c++ standard version 11"
 #endif
-
-#include <)" INCLUDED_FILENAME R"(>
+)"
+#ifndef NEEDS_INCLUDED_BINDINGS
+    "\n#include <" INCLUDED_FILENAME
+    ">"
+#endif
+    R"(
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -12215,7 +12220,7 @@ extern "C" __declspec( dllimport ) FARPROC __stdcall GetProcAddress( HINSTANCE h
 #endif
 
 #if ( 201711 <= __cpp_impl_three_way_comparison ) && __has_include( <compare> ) && !defined( )" HEADER_MACRO
-                                      R"(_NO_SPACESHIP_OPERATOR )
+    R"(_NO_SPACESHIP_OPERATOR )
 # define )" HEADER_MACRO R"(_HAS_SPACESHIP_OPERATOR
 #endif
 #if defined()" HEADER_MACRO R"(_HAS_SPACESHIP_OPERATOR)
