@@ -2161,14 +2161,27 @@ void VulkanHppGenerator::appendDispatchLoaderDefault( std::string & str )
 # endif
 #endif
 
-#if defined(_WIN32) && defined()" HEADER_MACRO R"(_STORAGE_SHARED)
-#  ifdef )" HEADER_MACRO R"(_STORAGE_SHARED_EXPORT
-#    define )" HEADER_MACRO R"(_STORAGE_API __declspec( dllexport )
+#if !defined( )" HEADER_MACRO R"(_STORAGE_API )
+#  if defined( )" HEADER_MACRO R"(_STORAGE_SHARED )
+#    if defined( _MSC_VER )
+#      if defined( )" HEADER_MACRO R"(_STORAGE_SHARED_EXPORT )
+#        define )" HEADER_MACRO R"(_STORAGE_API __declspec( dllexport )
+#      else
+#        define )" HEADER_MACRO R"(_STORAGE_API __declspec( dllimport )
+#      endif
+#    elif defined( __clang__ ) || defined( __GNUC__ )
+#      if defined( )" HEADER_MACRO R"(_STORAGE_SHARED_EXPORT )
+#        define )" HEADER_MACRO R"(_STORAGE_API __attribute__( ( visibility( "default" ) ) )
+#      else
+#        define )" HEADER_MACRO R"(_STORAGE_API
+#      endif
+#    else
+#      define )" HEADER_MACRO R"(_STORAGE_API
+#      pragma warning Unknown import / export semantics
+#    endif
 #  else
-#    define )" HEADER_MACRO R"(_STORAGE_API __declspec( dllimport )
+#    define )" HEADER_MACRO R"(_STORAGE_API
 #  endif
-#else
-#  define )" HEADER_MACRO R"(_STORAGE_API
 #endif
 
 #if !defined()" HEADER_MACRO R"(_DEFAULT_DISPATCHER)
@@ -3232,20 +3245,18 @@ void VulkanHppGenerator::appendStructAssignmentOperators( std::string &         
                                                           std::string const &                           prefix ) const
 {
   static const std::string assignmentFromVulkanType = R"(
+${prefix}${constexpr_assign}${structName} & operator=( ${structName} const & rhs ) )" HEADER_MACRO R"(_NOEXCEPT = default;
+
 ${prefix}${structName} & operator=( )" STRUCT_PREFIX R"(${structName} const & rhs ) )" HEADER_MACRO R"(_NOEXCEPT
 ${prefix}{
 ${prefix}  *this = *reinterpret_cast<)" HEADER_MACRO R"(_NAMESPACE::${structName} const *>( &rhs );
 ${prefix}  return *this;
 ${prefix}}
-
-${prefix}${structName} & operator=( ${structName} const & rhs ) )" HEADER_MACRO R"(_NOEXCEPT
-${prefix}{
-${prefix}  memcpy( static_cast<void *>( this ), &rhs, sizeof( ${structName} ) );
-${prefix}  return *this;
-${prefix}}
 )";
   str += replaceWithMap( assignmentFromVulkanType,
-                         { { "prefix", prefix }, { "structName", stripPrefix( structData.first, STRUCT_PREFIX ) } } );
+                         { { "constexpr_assign", constructConstexprString( structData, true ) },
+                           { "prefix", prefix },
+                           { "structName", stripPrefix( structData.first, STRUCT_PREFIX ) } } );
 }
 
 void VulkanHppGenerator::appendStructCompareOperators( std::string &                                 str,
@@ -4448,11 +4459,10 @@ std::string
 {
   assert( commandData.returnType == STRUCT_PREFIX "Result" );
 
-  auto firstVectorParamIt = vectorParamIndices.begin();
-
   assert( commandData.params[0].type.type == commandData.handle );
 
 #if !defined( NDEBUG )
+  auto firstVectorParamIt = vectorParamIndices.begin();
   auto secondVectorParamIt = std::next( firstVectorParamIt );
   assert( firstVectorParamIt->second == secondVectorParamIt->second );
 #endif
@@ -6011,14 +6021,14 @@ std::string VulkanHppGenerator::constructCommandVoidGetValue( std::string const 
 }
 
 std::string
-  VulkanHppGenerator::constructConstexprString( std::pair<std::string, StructureData> const & structData ) const
+  VulkanHppGenerator::constructConstexprString( std::pair<std::string, StructureData> const & structData, bool assignmentOperator ) const
 {
   // structs with a union (and <STRUCT_PREFIX>BaseInStructure and <STRUCT_PREFIX>BaseOutStructure) can't be a constexpr!
   bool isConstExpression = !containsUnion( structData.first ) &&
                            ( structData.first != STRUCT_PREFIX "BaseInStructure" ) &&
                            ( structData.first != STRUCT_PREFIX "BaseOutStructure" );
   return isConstExpression
-           ? ( std::string( HEADER_MACRO "_CONSTEXPR" ) + ( containsArray( structData.first ) ? "_14 " : " " ) )
+           ? ( std::string( HEADER_MACRO "_CONSTEXPR" ) + ( (containsArray( structData.first ) || assignmentOperator) ? "_14 " : " " ) )
            : "";
 }
 
@@ -6276,9 +6286,8 @@ ${prefix}{}
 ${prefix}${constexpr}${structName}( ${structName} const & rhs ) )" HEADER_MACRO R"(_NOEXCEPT = default;
 
 ${prefix}${structName}( )" STRUCT_PREFIX R"(${structName} const & rhs ) )" HEADER_MACRO R"(_NOEXCEPT
-${prefix}{
-${prefix}  *this = rhs;
-${prefix}}
+${prefix}  : ${structName}( *reinterpret_cast<${structName} const *>( &rhs ) )
+${prefix}{}
 )";
 
   std::string arguments, initializers;
@@ -6299,7 +6308,7 @@ ${prefix}}
 
   str += replaceWithMap( constructors,
                          { { "arguments", arguments },
-                           { "constexpr", constructConstexprString( structData ) },
+                           { "constexpr", constructConstexprString( structData, false ) },
                            { "initializers", initializers },
                            { "prefix", prefix },
                            { "structName", stripPrefix( structData.first, STRUCT_PREFIX ) } } );
@@ -6455,11 +6464,6 @@ std::string VulkanHppGenerator::appendStructMembers( std::string &              
   for ( auto const & member : structData.second.members )
   {
     str += prefix;
-    if ( member.values.size() == 1 )
-    {
-      // members with just one allowed value are set to be const
-      str += "const ";
-    }
     if ( !member.bitCount.empty() && beginsWith( member.type.type, STRUCT_PREFIX ) )
     {
       assert( member.type.prefix.empty() && member.type.postfix.empty() );  // never encounterd a different case
@@ -10489,6 +10493,11 @@ int main( int argc, char ** argv )
       , m_ptr( ptr )
     {}
 
+#if __GNUC__ >= 9
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winit-list-lifetime"
+#endif
+
     ArrayProxy( std::initializer_list<T> const & list ) )" HEADER_MACRO R"(_NOEXCEPT
       : m_count( static_cast<uint32_t>( list.size() ) )
       , m_ptr( list.begin() )
@@ -10510,6 +10519,10 @@ int main( int argc, char ** argv )
       : m_count( static_cast<uint32_t>( list.size() ) )
       , m_ptr( list.begin() )
     {}
+
+#if __GNUC__ >= 9
+#pragma GCC diagnostic pop
+#endif
 
     template <size_t N>
     ArrayProxy( std::array<T, N> const & data ) )" HEADER_MACRO R"(_NOEXCEPT
