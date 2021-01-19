@@ -8,6 +8,7 @@ All the options are designed as preprocessor macros. It's recommended to set the
   - Default value: `VULKAN_HPP_FILE`, if it's defined, `"vulkan.hpp"` otherwise.
 - `INCLUDED_FILENAME`: the include location of the file the bindings are designed for.
   - The value of the macro results in a line similar to `#include INCLUDED_FILENAME` near the top of an output file, for example `#include "vulkan/vulkan.h"`.
+  - This is only applicable if `INCLUDED_BINDINGS` is not defined. If there are manual bindings, they are responsible for including any dependencies needed.
   - Default value: `"vulkan/vulkan.h"`.
 - `INCLUDED_BINDINGS`: the path to a file to be included near the top of an output file.
   - Optional. If it is defined and specified file exists, the contents of the file is copied into the output file as is, without any additional processing.
