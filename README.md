@@ -1,2 +1,46 @@
-# Vulkan-Hpp generator fork: 
-## Easier to use in the cases when anything other than 'vk.xml' is used as an input
+# [Vulkan-Hpp](https://github.com/KhronosGroup/Vulkan-Hpp) generator fork
+The fork introduces a few configuration options in order to simplify generator usage in cases where inputs other that vulkan specs are used.
+## Configuration Options:
+All the options are designed as preprocessor macros. It's recommended to set them using your preferred build system for the whole project.
+- `INPUT_FILENAME`: the path to the input file.
+  - Default value: `VK_SPEC`, if it's defined, `"vk.xml"` otherwise.
+- `OUTPUT_FILENAME`: the path to the output file.
+  - Default value: `VULKAN_HPP_FILE`, if it's defined, `"vulkan.hpp"` otherwise.
+- `INCLUDED_FILENAME`: the include location of the file the bindings are designed for.
+  - The value of the macro results in a line similar to `#include INCLUDED_FILENAME` near the top of an output file, for example `#include "vulkan/vulkan.h"`.
+  - Default value: `"vulkan/vulkan.h"`.
+- `INCLUDED_BINDINGS`: the path to a file to be included near the top of an output file.
+  - Optional. If it is defined and specified file exists, the contents of the file is copied into the output file as is, without any additional processing.
+- `COMMAND_PREFIX`: the command (function) prefix used in the API the bindings are designed for.
+  - Default value: `"vk"` (e. g. every command (function) is expected to be named `vk*`.
+- `MACRO_PREFIX`: the macro prefix used in the API the bindings are designed for.
+  - Default value: `"VK"` (e. g. every macro is expected to be named `VK_*`.
+- `STRUCT_PREFIX`: the struct prefix used in the API the bindings are designed for.
+  - Default value: `"Vk"` (e. g. every struct is expected to be named `Vk*`.
+- `CUSTOM_ENUM_PREFIX`: the enum prefix used in the API the bindings are designed for.
+  - Default value: `MACRO_PREFIX` (e. g. every enum is expected to be named `VK_*`.
+- `CUSTOM_RESULT_ENUM_PREFIX`: the prefix used for a special `Result` enum values.
+  - Default value: `CUSTOM_ENUM_PREFIX` (e. g. every enum is expected to be named `VK_*`.
+- `DEFAULT_NAMESPACE`: the default namespace name.
+  - Default value: `"vk"`.
+  - This can later be changed by defining `#define HEADER_MACRO "_NAMESPACE"` before including the output header, see [here](https://github.com/KhronosGroup/Vulkan-Hpp#namespace-vk).
+- `INSTANCE_HANDLE_NAME`: the name of the 'root' object of the API, an object responcible for creation/deletion of any other object.
+  - Default value: `Instance`.
+  - Notice: `STRUCT_PREFIX` is included automatically, so `Instance` becomes `VkInstance` in default configuration.
+- `SPEC_API_NAME`: the name corresponding to `api` attribute of the `feature` tag of the input `xml` file.
+  - Default value: `"vulkan"`.
+- `HEADER_NAME`: human readable output header name, used for error messages etc.
+  - Default value: `"vulkan.hpp"`.
+- `HEADER_MACRO`: the prefix for all the configuration macros defined by the header.
+  - Default value: `"VULKAN_HPP"`, available configuration macros are described [here](https://github.com/KhronosGroup/Vulkan-Hpp#configuration-options).
+- `NO_DISPATCH`: removes everything related to dynamic function loading and dispatch from the output header.
+- `NO_ALLOCATION_CALLBACKS`: removes everything related to allocation callback command parameter automation from the output header.
+- `NO_VERSION_CHECK`: removes explicit header version check from the output header.
+  - Version check is, essentially, a single line of code equivalent to `static_assert( MACRO_PREFIX "_HEADER_VERSION" == VERSION, "Wrong header version!);`
+- `NO_STRUCTURE_CHAIN`: removes everything related to vulkan structure chaining from the output header.
+- `NO_OBJECT_TYPE_ENUM`: removes `ObjectType` enumeration and everything related to it from the output header.
+- `NO_DEBUG_REPORT_OBJECT_TYPE_ENUM`: removes `DebugReportObjectType` enumeration and everything related to it from the output header.
+- `NO_STRUCTURE_TYPE_ENUM`: removes `StructureType` enumeration and everything related to it from the output header.
+- `NO_INDEX_TYPE_TRAITS`: removes index type traits from the output header.
+- `ENABLE_OBJECT_END_DELETER`: enables commands named `COMMAND_PREFIX "End*"` to be parsed similarly to `COMMAND_PREFIX "Free*"`.
+  - Warning: this option breaks compilation of vulkan spec as commads like `vkEndCommandBuffer` are not intended to be processed in this way.
